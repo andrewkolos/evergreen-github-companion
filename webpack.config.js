@@ -1,4 +1,5 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin')
+const CopyPlugin = require('copy-webpack-plugin')
 const path = require('path')
 
 /** @type {import('webpack').Configuration} */
@@ -35,6 +36,14 @@ module.exports = [
     plugins: [
       new HtmlWebpackPlugin({
         template: './src/index.html',
+      }),
+      new CopyPlugin({
+        patterns: [
+          {
+            from: path.resolve('src/static'),
+            to: path.resolve('dist'),
+          },
+        ],
       }),
     ],
   },
