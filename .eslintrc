@@ -12,5 +12,6 @@
     "@akolos/eslint-config-typescript",
     "prettier"
   ],
+  "ignorePatterns": ["*.config.js"],
   "rules": {}
 }

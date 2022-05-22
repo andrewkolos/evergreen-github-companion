@@ -1,7 +1,10 @@
 import { Octokit } from '@octokit/rest'
-import { isToday } from './is-today'
+import dotenv from 'dotenv'
+import { isToday } from '../is-today'
 
-export const GitHub = Object.freeze({
+dotenv.config()
+
+export const GitHubClient = Object.freeze({
   getTodaysCommits: async () => {
     const client = new Octokit({
       log: console,

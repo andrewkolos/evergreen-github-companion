@@ -1,14 +1,16 @@
 import cronTime from 'cron-time-generator'
-import { BrowserWindow, Menu, Notification, Tray } from 'electron'
+import { BrowserWindow, Notification, Tray } from 'electron'
 import cron from 'node-cron'
+import { GitHubClient } from '../service/github-client'
+import { isToday } from '../is-today'
 import path from 'path'
-import { GitHub } from './github'
-import { isToday } from './is-today'
 
 export function setUpTrayIcon() {
   const tray = new Tray('./icon.png')
-  const contextMenu = Menu.buildFromTemplate([{ label: 'About', type: 'normal', click: () => createWindow() }])
-  tray.setContextMenu(contextMenu)
+  // const contextMenu = Menu.buildFromTemplate([{ label: 'About', type: 'normal', click: () => createWindow() }])
+  // tray.setContextMenu(contextMenu)
+
+  tray.addListener('click', createWindow)
 
   cron.schedule(cronTime.every(5).minutes(), () => checkForDailyCommit(tray))
 }
@@ -19,7 +21,7 @@ let lastShownNotificationDate: Date | undefined
 async function checkForDailyCommit(tray: Tray): Promise<void> {
   if (lastKnownCommitDate != null && isToday(lastKnownCommitDate)) return
 
-  const commits = await GitHub.getTodaysCommits()
+  const commits = await GitHubClient.getTodaysCommits()
   if (commits.length > 0) {
     tray.setImage('./green.png')
     lastKnownCommitDate = new Date()
@@ -41,10 +43,10 @@ function createWindow() {
     width: 1280,
     height: 720,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: './preload.js',
     },
   })
-
-  window.loadFile('index.html')
+  window.setMenuBarVisibility(false)
+  window.loadFile(`../website/index.html`)
   window.webContents.openDevTools()
 }
