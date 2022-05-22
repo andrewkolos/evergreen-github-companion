@@ -43,6 +43,8 @@ function createWindow() {
     width: 1280,
     height: 720,
     webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
       preload: './preload.js',
     },
   })
