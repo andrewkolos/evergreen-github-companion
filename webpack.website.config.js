@@ -2,7 +2,8 @@
 
 // pull in the 'path' module from node
 const path = require('path')
-const HtmlWebpackPlugin = require('html-webpack-plugin')
+const HtmlWebPackPlugin = require('html-webpack-plugin')
+const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 
 /** @type {import('webpack').Configuration} */
 module.exports = {
@@ -30,7 +31,7 @@ module.exports = {
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader', 'postcss-loader'],
+        use: [MiniCssExtractPlugin.loader, 'css-loader', 'postcss-loader'],
       },
       {
         test: /\.scss$/,
@@ -47,8 +48,10 @@ module.exports = {
     extensions: ['.ts', '.tsx', '.js'],
   },
   plugins: [
+    new MiniCssExtractPlugin(),
+
     // This reads index.html from src, injects a <script> tag for index.js, and then copies it to the output dir
-    new HtmlWebpackPlugin({
+    new HtmlWebPackPlugin({
       template: 'src/website/index.html',
     }),
   ],

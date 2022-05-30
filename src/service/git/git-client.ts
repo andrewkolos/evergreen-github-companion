@@ -21,12 +21,27 @@ export const GitClient = Object.freeze({
       })
       .map((dir) => path.join(GIT_HUB_REPO_DIR_PATH, dir))
 
-    return Promise.all(dirs.map((dir) => getRepoInfo(dir)).filter((repo) => repo != null))
+    return (
+      await Promise.all(
+        dirs.map(async (dir) => {
+          const git = SimpleGit(dir)
+          try {
+            // TODO: This handles the repo not being published to GitHub.
+            // Eventually, we'll want to support being able to push new repos up to GitHub
+            await git.listRemote()
+            return await getRepoInfo(dir)
+          } catch {
+            return undefined
+          }
+        }),
+      )
+    ).filter((repo): repo is Repo => repo != null)
   },
 
   async pushNextCommit({ repoPath, branchName }: MakeAndPushCommitParams): Promise<void> {
     const git = SimpleGit(repoPath)
     const repoInfo = await getRepoInfo(repoPath)
+    if (repoInfo == null) throw Error('uhh')
     const branch = repoInfo.branches.find((b) => b.name === branchName)
     if (branch == null) {
       throw Error(`Could not find branch '${branchName}'`)
@@ -48,11 +63,17 @@ function parseRepoNameFromUrl(gitUrl: string) {
   return nameDotGit.split('.')[0]
 }
 
-async function getRepoInfo(dir: string): Promise<Repo> {
+async function getRepoInfo(dir: string): Promise<Repo | undefined> {
   const git = SimpleGit(dir)
   const branches = (await git.branchLocal()).all
   const branchesWithUnpushedCommits = await Promise.all(
     branches.map(async (branch) => {
+      const lsRemote = await git.listRemote(['--heads', 'origin', branch])
+      if (lsRemote.length > 0)
+        return {
+          name: branch,
+          unpushedCommits: (await git.log()).all,
+        }
       const logResults = (
         await git.log({
           from: `origin/${branch}`,

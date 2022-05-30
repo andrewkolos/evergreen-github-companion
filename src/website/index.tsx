@@ -1,9 +1,7 @@
-// src/react.tsx
-
 import React, { useEffect } from 'react'
-import { RepoListing } from './components/RepoListing/RepoListing'
 import { GitClient } from '../service/git/git-client'
 import { Repo } from '../service/git/types/repo'
+import { RepoListing } from './components/RepoListing/RepoListing'
 
 export const Index: React.FC = () => {
   const [repos, setRepos] = React.useState<Repo[] | undefined>(undefined)
@@ -17,7 +15,11 @@ export const Index: React.FC = () => {
   ) : (
     <>
       {repos.map((repo) => (
-        <RepoListing repo={repo} onPushCommit={(branch, commit) => pushCommit(repo.localPath, branch, commit.hash)} />
+        <RepoListing
+          key={repo.name}
+          repo={repo}
+          onPushCommit={(branch, commit) => pushCommit(repo.localPath, branch, commit.hash)}
+        />
       ))}
     </>
   )

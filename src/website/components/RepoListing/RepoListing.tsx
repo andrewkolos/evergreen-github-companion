@@ -10,7 +10,7 @@ interface BranchListingProps {
   branch: Branch
 }
 const BranchListing: React.FC<BranchListingProps> = ({ branch }) => (
-  <div>
+  <div className="rounded-lg m-1 p-2 ring-1 ring-slate-900/5 shadow-sm">
     <p>{branch.name}</p>
     <p>next commit:</p>
     <p>{branch.unpushedCommits[0].message}</p>
@@ -24,11 +24,11 @@ export interface RepoProps {
 }
 
 export const RepoListing: React.FC<RepoProps> = ({ repo }) => (
-  <>
-    <p>{repo.name}</p>
+  <div className="bg-white rounded-lg m-2 px-6 py-8 ring-1 ring-slate-900/5 shadow-xl">
+    <p className="text-slate-900 mt-5 text-lg font-medium tracking-tight">{repo.name}</p>
     {repo.branches.map((branch) => (
-      <BranchListing branch={branch} />
+      <BranchListing key={repo.name + branch.name} branch={branch} />
     ))}
     <p>end Repo</p>
-  </>
+  </div>
 )

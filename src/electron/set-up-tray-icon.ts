@@ -51,10 +51,8 @@ function createWindow() {
   window.setMenuBarVisibility(false)
   window.loadFile(`../website/index.html`)
   if (process.env.NODE_ENV === 'development') {
-    window.webContents.openDevTools()
     const testDisplay = screen.getAllDisplays()[1]
     setTimeout(() => {
-      console.warn(process.env)
       window.show()
       window.focus()
       window.center()
@@ -68,6 +66,7 @@ function createWindow() {
         },
         true,
       )
+      window.webContents.openDevTools()
     }, 1000)
   }
 }

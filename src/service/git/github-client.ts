@@ -12,6 +12,12 @@ export const GitHubClient = Object.freeze({
     const events = await client.activity.listEventsForAuthenticatedUser({
       username: 'andrewkolos',
     })
-    return events.data.filter((event) => isToday(new Date(event.created_at)))
+    return events.data.filter((event) => {
+      if (event.created_at == null) {
+        console.warn(`GitHub event 'created_at' was undefined.`)
+        return false
+      }
+      return isToday(new Date(event.created_at))
+    })
   },
 })

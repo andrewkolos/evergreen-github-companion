@@ -6,6 +6,7 @@ const commonConfig = {
   module: {
     rules: [{ test: /\.tsx?$/, loader: 'ts-loader' }],
   },
+  devtool: 'cheap-module-source-map',
   resolve: {
     extensions: ['.ts', '.tsx', '.js'],
   },

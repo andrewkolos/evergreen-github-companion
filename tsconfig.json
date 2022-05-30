@@ -6,12 +6,12 @@
     "esModuleInterop": true,
     "noImplicitAny": true,
     "sourceMap": true,
-    "outDir": "dist",
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "paths": {
       "*": ["./node_modules/*"]
     },
+    "strict": true,
     "jsx": "react"
   },
   "exclude": ["node_modules"]
