@@ -2,8 +2,8 @@
 
 import React, { useEffect } from 'react'
 import { RepoListing } from './components/RepoListing/RepoListing'
-import { GitClient } from '../service/git-client'
-import { Repo } from '../service/types/repo'
+import { GitClient } from '../service/git/git-client'
+import { Repo } from '../service/git/types/repo'
 
 export const Index: React.FC = () => {
   const [repos, setRepos] = React.useState<Repo[] | undefined>(undefined)

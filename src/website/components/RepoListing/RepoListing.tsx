@@ -2,9 +2,9 @@
 /* eslint-disable react/no-unused-prop-types */
 /* eslint-disable react/require-default-props */
 import React from 'react'
-import { Repo } from '../../../service/types/repo'
-import { Branch } from '../../../service/types/branch'
-import { Commit } from '../../../service/types/commit'
+import { Repo } from '../../../service/git/types/repo'
+import { Branch } from '../../../service/git/types/branch'
+import { Commit } from '../../../service/git/types/commit'
 
 interface BranchListingProps {
   branch: Branch

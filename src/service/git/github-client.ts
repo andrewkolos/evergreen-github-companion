@@ -1,6 +1,6 @@
 import { Octokit } from '@octokit/rest'
 import dotenv from 'dotenv'
-import { isToday } from '../is-today'
+import { isToday } from '../../is-today'
 
 dotenv.config()
 

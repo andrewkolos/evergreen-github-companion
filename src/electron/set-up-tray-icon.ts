@@ -1,9 +1,8 @@
 import cronTime from 'cron-time-generator'
-import { BrowserWindow, Notification, Tray } from 'electron'
+import { BrowserWindow, Notification, Tray, screen } from 'electron'
 import cron from 'node-cron'
-import { GitHubClient } from '../service/github-client'
+import { GitHubClient } from '../service/git/github-client'
 import { isToday } from '../is-today'
-import path from 'path'
 
 export function setUpTrayIcon() {
   const tray = new Tray('./icon.png')
@@ -11,6 +10,7 @@ export function setUpTrayIcon() {
   // tray.setContextMenu(contextMenu)
 
   tray.addListener('click', createWindow)
+  createWindow()
 
   cron.schedule(cronTime.every(5).minutes(), () => checkForDailyCommit(tray))
 }
@@ -50,5 +50,24 @@ function createWindow() {
   })
   window.setMenuBarVisibility(false)
   window.loadFile(`../website/index.html`)
-  window.webContents.openDevTools()
+  if (process.env.NODE_ENV === 'development') {
+    window.webContents.openDevTools()
+    const testDisplay = screen.getAllDisplays()[1]
+    setTimeout(() => {
+      console.warn(process.env)
+      window.show()
+      window.focus()
+      window.center()
+      window.moveTop()
+      window.setBounds(
+        {
+          height: testDisplay.bounds.height / 2,
+          width: testDisplay.bounds.width / 2,
+          x: testDisplay.bounds.x / 2,
+          y: testDisplay.bounds.y / 2,
+        },
+        true,
+      )
+    }, 1000)
+  }
 }
