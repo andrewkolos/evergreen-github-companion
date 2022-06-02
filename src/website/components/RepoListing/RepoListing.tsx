@@ -24,11 +24,10 @@ export interface RepoProps {
 }
 
 export const RepoListing: React.FC<RepoProps> = ({ repo }) => (
-  <div className="bg-white rounded-lg m-2 px-6 py-8 ring-1 ring-slate-900/5 shadow-xl">
-    <p className="text-slate-900 mt-5 text-lg font-medium tracking-tight">{repo.name}</p>
+  <div className="bg-white rounded-lg m-2 px-6 py-6 ring-1 ring-slate-900/5 shadow-xl">
+    <p className="text-slate-900 text-lg font-medium tracking-tight">{repo.name}</p>
     {repo.branches.map((branch) => (
       <BranchListing key={repo.name + branch.name} branch={branch} />
     ))}
-    <p>end Repo</p>
   </div>
 )

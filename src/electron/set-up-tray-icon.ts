@@ -1,6 +1,7 @@
 import cronTime from 'cron-time-generator'
 import { BrowserWindow, Notification, Tray, screen } from 'electron'
 import cron from 'node-cron'
+import path from 'path'
 import { GitHubClient } from '../service/git/github-client'
 import { isToday } from '../is-today'
 
@@ -44,29 +45,20 @@ function createWindow() {
     height: 720,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false,
-      preload: './preload.js',
+      contextIsolation: false, // TODO: Enable. https://www.electronjs.org/docs/latest/tutorial/context-isolation
+      preload: path.join(__dirname, 'preload.js'),
     },
   })
   window.setMenuBarVisibility(false)
   window.loadFile(`../website/index.html`)
   if (process.env.NODE_ENV === 'development') {
-    const testDisplay = screen.getAllDisplays()[1]
     setTimeout(() => {
       window.show()
       window.focus()
       window.center()
       window.moveTop()
-      window.setBounds(
-        {
-          height: testDisplay.bounds.height / 2,
-          width: testDisplay.bounds.width / 2,
-          x: testDisplay.bounds.x / 2,
-          y: testDisplay.bounds.y / 2,
-        },
-        true,
-      )
+      window.setBounds({ x: 2554, y: 0, width: 1280, height: 720 }, true)
       window.webContents.openDevTools()
-    }, 1000)
+    }, 0)
   }
 }

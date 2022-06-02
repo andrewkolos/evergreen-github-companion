@@ -1,9 +1,14 @@
 import React, { useEffect } from 'react'
+import { MyApi } from '../electron/preload'
 import { GitClient } from '../service/git/git-client'
 import { Repo } from '../service/git/types/repo'
 import { RepoListing } from './components/RepoListing/RepoListing'
 
-export const Index: React.FC = () => {
+export interface IndexProps {
+  api: MyApi
+}
+
+export const Index: React.FC<IndexProps> = ({ api }) => {
   const [repos, setRepos] = React.useState<Repo[] | undefined>(undefined)
 
   useEffect(() => {

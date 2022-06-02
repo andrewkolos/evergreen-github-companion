@@ -2,8 +2,8 @@ export function isToday(date: Date) {
   const today = new Date()
 
   return (
-    date.getUTCDate() === today.getUTCDate() &&
-    date.getUTCMonth() === today.getUTCMonth() &&
-    date.getUTCFullYear() === today.getUTCFullYear()
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
   )
 }

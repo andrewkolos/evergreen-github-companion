@@ -1,7 +1,8 @@
 import fse from 'fs-extra'
 import path from 'path'
-import SimpleGit from 'simple-git'
+import SimpleGit, { DefaultLogFields, ListLogLine } from 'simple-git'
 import { Branch } from './types/branch'
+import { Commit } from './types/commit'
 import { Repo } from './types/repo'
 
 const GIT_HUB_REPO_DIR_PATH = 'C:/Users/Jozz/Documents/GitHub/'
@@ -35,7 +36,9 @@ export const GitClient = Object.freeze({
           }
         }),
       )
-    ).filter((repo): repo is Repo => repo != null)
+    )
+      .filter((repo): repo is Repo => repo != null)
+      .filter((repo) => repo.branches.some((branch) => branch.unpushedCommits.length > 0))
   },
 
   async pushNextCommit({ repoPath, branchName }: MakeAndPushCommitParams): Promise<void> {
@@ -65,36 +68,63 @@ function parseRepoNameFromUrl(gitUrl: string) {
 
 async function getRepoInfo(dir: string): Promise<Repo | undefined> {
   const git = SimpleGit(dir)
+
+  const repoName = await getRepoName(dir)
+
   const branches = (await git.branchLocal()).all
-  const branchesWithUnpushedCommits = await Promise.all(
-    branches.map(async (branch) => {
-      const lsRemote = await git.listRemote(['--heads', 'origin', branch])
-      if (lsRemote.length > 0)
-        return {
+  const branchesWithUnpushedCommits = (
+    await Promise.all(
+      branches.map(
+        async (branch): Promise<Branch> => ({
           name: branch,
-          unpushedCommits: (await git.log()).all,
-        }
-      const logResults = (
-        await git.log({
-          from: `origin/${branch}`,
-          to: `${branch}`,
-        })
-      ).all
+          repoName,
+          unpushedCommits: await getUnpushedCommitsForBranch(dir, branch),
+        }),
+      ),
+    )
+  ).filter((branch) => branch.unpushedCommits.length > 0)
 
-      const result: Branch = {
-        name: branch,
-        unpushedCommits: logResults,
-      }
-      return result
-    }),
-  )
-
-  const gitUrl = await git.remote(['get-url', 'origin'])
-  if (typeof gitUrl !== 'string') return undefined
-  if (branchesWithUnpushedCommits.length === 0) return undefined
   return {
-    name: parseRepoNameFromUrl(gitUrl),
+    name: repoName,
     localPath: dir,
     branches: branchesWithUnpushedCommits,
   }
+}
+
+function logResultsToCommits(
+  logResults: Array<DefaultLogFields & ListLogLine> | ReadonlyArray<DefaultLogFields & ListLogLine>,
+  repoName: string,
+  branchName: string,
+): Commit[] {
+  return logResults.map((lr) => ({
+    ...lr,
+    repoName,
+    branchName,
+  }))
+}
+
+async function getUnpushedCommitsForBranch(repoDir: string, branchName: string): Promise<Commit[]> {
+  const git = SimpleGit(repoDir)
+  const repoName = await getRepoName(repoDir)
+  const lsRemote = await git.listRemote(['--heads', 'origin', branchName])
+  if (lsRemote.length <= 0) {
+    return []
+  }
+
+  const allUnpushedCommits = (
+    await git.log({
+      from: `origin/${branchName}`,
+      to: `${branchName}`,
+    })
+  ).all
+
+  return logResultsToCommits(allUnpushedCommits, repoName, branchName).reverse()
+}
+
+async function getRepoName(repoDir: string): Promise<string> {
+  const git = SimpleGit(repoDir)
+  const gitUrl = await git.remote(['get-url', 'origin'])
+  if (typeof gitUrl === 'string') return parseRepoNameFromUrl(gitUrl)
+
+  return repoDir.split('/').slice(-1)[0]
 }
