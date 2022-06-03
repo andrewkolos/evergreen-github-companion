@@ -10,16 +10,16 @@ import {
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import React, { useState } from 'react'
 import { restrictToVerticalAxis, restrictToWindowEdges } from '@dnd-kit/modifiers'
-import { Scheduling } from '../../git/types/scheduling'
-import { SchedulingListing } from './SchedulingListing'
+import { RepoListing } from './RepoListing'
+import { Repo } from '../../git/types/repo'
 
 export interface ScheduleProps {
-  initialSchedule: Scheduling[]
-  onReorder: (newSchedule: Scheduling[]) => void
+  initialSchedule: Repo[]
+  onReorder: (newSchedule: Repo[]) => void
 }
 
 export const Schedule: React.FC<ScheduleProps> = ({ initialSchedule, onReorder }) => {
-  const [schedule, setSchedule] = useState<(Scheduling & { id: string })[]>(tagWithIds(initialSchedule))
+  const [schedule, setSchedule] = useState<(Repo & { id: string })[]>(tagWithIds(initialSchedule))
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -34,12 +34,8 @@ export const Schedule: React.FC<ScheduleProps> = ({ initialSchedule, onReorder }
       modifiers={[restrictToVerticalAxis, restrictToWindowEdges]}
     >
       <SortableContext items={schedule} strategy={verticalListSortingStrategy}>
-        {schedule.map((scheduling, index) => (
-          <SchedulingListing
-            key={scheduling.repo.name + scheduling.branch.name}
-            scheduling={scheduling}
-            order={index + 1}
-          />
+        {schedule.map((repo, index) => (
+          <RepoListing key={repo.name + repo.mainBranchName} repo={repo} order={index + 1} />
         ))}
       </SortableContext>
     </DndContext>
@@ -63,16 +59,16 @@ export const Schedule: React.FC<ScheduleProps> = ({ initialSchedule, onReorder }
   }
 }
 
-function tagWithIds(schedule: Scheduling[]) {
-  return schedule.map((s) => ({
-    ...s,
-    id: Scheduling.toId(s),
+function tagWithIds(schedule: Repo[]) {
+  return schedule.map((repo) => ({
+    ...repo,
+    id: repo.name,
   }))
 }
 
-function untag(items: Array<Scheduling & { id: string }>): Scheduling[] {
+function untag(items: Array<Repo & { id: string }>): Repo[] {
   return items.map((i) => {
-    const result: Scheduling & Partial<{ id: string }> = { ...i }
+    const result: Repo & Partial<{ id: string }> = { ...i }
     delete result.id
     return result
   })

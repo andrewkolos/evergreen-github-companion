@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { IoMdOptions } from 'react-icons/io'
+import type { Repo } from '../git/types/repo'
 import { DailyCommitStatus } from '../git/daily-commit-status'
-import { Scheduling } from '../git/types/scheduling'
 import { ipcApi } from '../ipc/ipc-api'
 import { DailyCommitStatusDisplay } from './components/DailyCommitStatusDisplay'
 import PausedDisplay from './components/PausedDisplay'
@@ -15,7 +15,7 @@ export interface IndexProps {
 }
 
 export const Index: React.FC<IndexProps> = ({ api, initialReposDir, initialGitHubUserName }) => {
-  const [schedule, setSchedule] = React.useState<Scheduling[] | undefined | null>(undefined)
+  const [schedule, setSchedule] = React.useState<Repo[] | undefined | null>(undefined)
   const [paused, setPaused] = React.useState<boolean>(false)
   const [reposDir, setReposDir] = React.useState<string | null>(initialReposDir)
   const [gitHubUsername, setGitHubUsername] = React.useState<string | null>(initialGitHubUserName)
@@ -102,7 +102,7 @@ export const Index: React.FC<IndexProps> = ({ api, initialReposDir, initialGitHu
     return <Schedule initialSchedule={schedule} onReorder={handleReorder} />
   }
 
-  function handleReorder(newSchedule: Scheduling[]) {
+  function handleReorder(newSchedule: Repo[]) {
     setSchedule(newSchedule)
     void api.rescheduleCommits(newSchedule)
   }

@@ -1,4 +1,4 @@
-import { Branch } from './branch'
+import { Commit } from './commit'
 
 export interface Repo {
   /**
@@ -7,5 +7,7 @@ export interface Repo {
    */
   name: string
   localPath: string
-  branches: Branch[]
+  mainBranchName: string
+  /** The unpushed commits, in order of date committed, ascending. */
+  unpushedCommits: readonly Commit[]
 }

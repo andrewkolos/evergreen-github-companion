@@ -1,6 +1,6 @@
-import { EventEmitter } from '@akolos/event-emitter'
 import ElectronStore from 'electron-store'
-import { Scheduling } from '../git/types/scheduling'
+import { inspect } from 'util'
+import { Repo } from '../git/types/repo'
 
 export enum StorageEntryKeys {
   RepositoriesDirectoryPath = 'RepositoriesDirectoryPath',
@@ -11,17 +11,9 @@ export enum StorageEntryKeys {
 
 interface StorageEntries {
   [StorageEntryKeys.RepositoriesDirectoryPath]: string | null
-  [StorageEntryKeys.Schedule]: Scheduling[] | null
+  [StorageEntryKeys.Schedule]: Repo[] | null
   [StorageEntryKeys.Paused]: boolean
   [StorageEntryKeys.GitHubUsername]: string | null
-}
-
-interface StorageEvents {
-  valueChanged: <K extends StorageEntryKeys>(
-    key: K,
-    newValue: StorageEntries[K],
-    previousValue: StorageEntries[K],
-  ) => void
 }
 
 const storageDefaults: { [key in StorageEntryKeys]: StorageEntries[key] } = {
@@ -31,21 +23,16 @@ const storageDefaults: { [key in StorageEntryKeys]: StorageEntries[key] } = {
   [StorageEntryKeys.GitHubUsername]: null,
 }
 
-const eventEmitter = new EventEmitter<StorageEvents>()
 export const storage = new ElectronStore<StorageEntries>({ defaults: storageDefaults })
 
 export const Storage = {
-  on: eventEmitter.makeDelegate('on', this),
-  off: eventEmitter.makeDelegate('off', this),
-
   get<K extends keyof StorageEntries>(key: K): StorageEntries[K] {
     const result = storage.get(key)
     return result
   },
 
   set<K extends keyof StorageEntries>(key: K, value: StorageEntries[K]): void {
-    const currentValue = storage.get(key)
     storage.set(key, value)
-    eventEmitter.emit('valueChanged', key, value, currentValue)
+    console.log(`Storage: set ${key} to ${inspect(value)}`)
   },
 }

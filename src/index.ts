@@ -18,17 +18,17 @@ import dotenv from 'dotenv'
 
 import cron from 'node-cron'
 import dedent from 'ts-dedent'
+import { inspect } from 'util'
 import { DailyCommitStatus } from './git/daily-commit-status'
-import { GitClient } from './git/git-client'
-import { Branch } from './git/types/branch'
 import { Repo } from './git/types/repo'
-import { Scheduling } from './git/types/scheduling'
 import { IpcChannelName, IpcHandlerParams } from './ipc/ipc-channels'
 import { isToday } from './is-today'
 import { createMainWindow } from './main/create-main-window'
 import { getDailyCommitStatus } from './main/get-daily-commit-status'
 import { MyTrayIcon } from './main/set-up-tray-icon'
 import { Storage, StorageEntryKeys } from './main/storage'
+import { getReposWithUnpushedCommits } from './git/get-repos-with-unpushed-commits'
+import { pushNextCommit } from './git/push-next-commit'
 
 dotenv.config()
 
@@ -39,28 +39,7 @@ void app.whenReady().then(async () => {
     body: process.cwd(),
   }).show()
   const mainWindow = createMainWindow()
-  ipcMain.handle(IpcChannelName.DialogOpenDirectory, () => handleDirectorySelect())
-  ipcMain.handle(IpcChannelName.ReposDirChanged, (_event, ...args: IpcHandlerParams<IpcChannelName.ReposDirChanged>) =>
-    handleReposDirChanged(...args),
-  )
-  ipcMain.handle(
-    IpcChannelName.ScheduleReorderedByUser,
-    (_event, ...args: IpcHandlerParams<IpcChannelName.ScheduleReorderedByUser>) =>
-      handleScheduleReorderedByUser(...args),
-  )
-  ipcMain.handle(IpcChannelName.PausedChanged, (_event, ...args: IpcHandlerParams<IpcChannelName.PausedChanged>) =>
-    handlePausedToggle(...args),
-  )
-  ipcMain.handle(IpcChannelName.UiReady, () => {
-    sendToMainWindow(IpcChannelName.ScheduleUpdated, Storage.get(StorageEntryKeys.Schedule) ?? [])
-    void update()
-  })
-  ipcMain.handle(
-    IpcChannelName.GitHubUsernameChanged,
-    (_event, ...args: IpcHandlerParams<IpcChannelName.GitHubUsernameChanged>) => {
-      Storage.set(StorageEntryKeys.GitHubUsername, args[0])
-    },
-  )
+  wireRendererIpc()
 
   const trayIcon = MyTrayIcon.initialize({
     initialPauseCheckboxValue: Storage.get(StorageEntryKeys.Paused),
@@ -74,21 +53,43 @@ void app.whenReady().then(async () => {
       throw Error('Not implemented yet')
     })
 
-  void initializeSchedule().then((value) => {
-    if (value) {
-      Storage.set(StorageEntryKeys.Schedule, value)
-      sendToMainWindow(IpcChannelName.ScheduleUpdated, value)
-    }
-  })
-
-  cron.schedule(CronTime.every(5).minutes(), () => update)
+  cron.schedule(CronTime.every(5).minutes(), () => update())
   sendToMainWindow(IpcChannelName.PausedChanged, Storage.get(StorageEntryKeys.Paused))
+
+  function wireRendererIpc() {
+    ipcMain.handle(IpcChannelName.DialogOpenDirectory, () => handleDirectorySelect())
+    ipcMain.handle(
+      IpcChannelName.ReposDirChanged,
+      (_event, ...args: IpcHandlerParams<IpcChannelName.ReposDirChanged>) => handleReposDirChanged(...args),
+    )
+    ipcMain.handle(
+      IpcChannelName.ScheduleReorderedByUser,
+      (_event, ...args: IpcHandlerParams<IpcChannelName.ScheduleReorderedByUser>) =>
+        handleScheduleReorderedByUser(...args),
+    )
+    ipcMain.handle(IpcChannelName.PausedChanged, (_event, ...args: IpcHandlerParams<IpcChannelName.PausedChanged>) =>
+      handlePausedToggle(...args),
+    )
+    ipcMain.handle(IpcChannelName.UiReady, () => {
+      sendToMainWindow(IpcChannelName.ScheduleUpdated, Storage.get(StorageEntryKeys.Schedule) ?? [])
+      void update()
+    })
+    ipcMain.handle(
+      IpcChannelName.GitHubUsernameChanged,
+      (_event, ...args: IpcHandlerParams<IpcChannelName.GitHubUsernameChanged>) => {
+        Storage.set(StorageEntryKeys.GitHubUsername, args[0])
+      },
+    )
+  }
 
   async function update() {
     console.log('Updating...')
 
     const gitHubUsername = Storage.get(StorageEntryKeys.GitHubUsername)
-    if (gitHubUsername == null) return
+    if (gitHubUsername == null) {
+      console.log('update: No GitHub username has been set. Stopping update.')
+      return
+    }
 
     const currentStatus = await getDailyCommitStatus(gitHubUsername)
     const schedule = Storage.get(StorageEntryKeys.Schedule)?.slice()
@@ -97,14 +98,16 @@ void app.whenReady().then(async () => {
       if (schedule && schedule.length > 0) {
         const next = schedule.shift()
         if (!next) throw Error()
-        await pushNextCommit(next.repo, next.branch)
+        await pushNextCommitAndUpdateSchedule(next)
 
         new Notification({
           title: 'Pushed daily commit',
-          body: dedent`Pushed the next commit of: ${next.repo.name}/${next.branch.name},
-            ${next.branch.unpushedCommits[0].message}`,
+          body: dedent`Pushed the next commit of: ${next.name}/${next.mainBranchName},
+            ${next.unpushedCommits[0].message}`,
         }).show()
       }
+    } else {
+      console.log(`No scheduled items to commit.`)
     }
 
     const nextStatus = await getDailyCommitStatus(gitHubUsername)
@@ -130,34 +133,26 @@ void app.whenReady().then(async () => {
     trayIcon.notifyOfEvent(IpcChannelName.PausedChanged, value)
   }
 
-  async function handleReposDirChanged(value: string) {
-    Storage.set(StorageEntryKeys.RepositoriesDirectoryPath, value)
-    const newSchedule = await new GitClient(value).createSchedule()
+  async function handleReposDirChanged(newReposDir: string) {
+    Storage.set(StorageEntryKeys.RepositoriesDirectoryPath, newReposDir)
+    const newSchedule = await getReposWithUnpushedCommits(newReposDir)
     const params: IpcHandlerParams<IpcChannelName.ScheduleUpdated> = [newSchedule]
     sendToMainWindow(IpcChannelName.ScheduleUpdated, ...params)
   }
 
-  async function handleScheduleReorderedByUser(value: Scheduling[]) {
+  async function handleScheduleReorderedByUser(value: Repo[]) {
     Storage.set(StorageEntryKeys.Schedule, value)
     sendToMainWindow(IpcChannelName.ScheduleUpdated, value)
   }
 
-  async function pushNextCommit(repo: Repo, branch: Branch) {
-    const schedule = Storage.get(StorageEntryKeys.Schedule)
-    const commit = schedule?.find(
-      (scheduling) => scheduling.repo.name === repo.name && scheduling.branch.name === branch.name,
-    )
-
-    if (commit == null) {
-      throw Error(`Tried to push the next commit for ${repo}/${branch}, but it could not be found.`)
-    }
-
+  async function pushNextCommitAndUpdateSchedule(repo: Repo) {
     const path = Storage.get(StorageEntryKeys.RepositoriesDirectoryPath)
+
     if (path == null) {
       throw Error()
     }
 
-    await new GitClient(path).pushNextCommit({ repoPath: repo.localPath, branchName: branch.name })
+    await pushNextCommit(repo)
 
     const newSchedule = await initializeSchedule()
     sendToMainWindow(IpcChannelName.ScheduleUpdated, newSchedule ?? [])
@@ -165,14 +160,17 @@ void app.whenReady().then(async () => {
   }
 
   function sendToMainWindow<C extends IpcChannelName>(channel: C, ...args: IpcHandlerParams<C>) {
+    console.log(`Sending message to main window: ${channel}, ${args}`)
     mainWindow.webContents.send(channel, ...args)
   }
 })
 
-async function initializeSchedule(): Promise<Scheduling[] | undefined> {
+async function initializeSchedule(): Promise<Repo[] | undefined> {
   const dir = Storage.get(StorageEntryKeys.RepositoriesDirectoryPath)
   if (dir == null) return undefined
-  return new GitClient(dir).createSchedule()
+  const result = await getReposWithUnpushedCommits(dir)
+  console.log(`Initialized schedule: ${inspect(result)}`)
+  return result
 }
 
 app.on('window-all-closed', () => {
@@ -207,6 +205,3 @@ app.on('activate', () => {
     createMainWindow()
   }
 })
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.

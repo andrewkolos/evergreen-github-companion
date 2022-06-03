@@ -21,10 +21,9 @@ export const GitHubClient = (username: string) =>
 const token = process.env.GITHUB_TOKEN
 async function getTodaysCommits(username: string) {
   const client = new Octokit({
-    log: console,
     auth: token != null ? `token ${token}` : undefined,
   })
-  const events = await client.activity.listPublicEventsForUser({
+  const events = await client.activity.listEventsForAuthenticatedUser({
     username,
   })
   return events.data.filter((event) => {

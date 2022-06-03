@@ -1,7 +1,7 @@
 import { OpenDialogReturnValue } from 'electron'
+import { Repo } from '../git/types/repo'
 import { DailyCommitStatus } from '../git/daily-commit-status'
 import { Commit } from '../git/types/commit'
-import { Scheduling } from '../git/types/scheduling'
 
 export enum IpcChannelName {
   DialogOpenDirectory = 'Dialog:OpenDirectory',
@@ -19,8 +19,8 @@ interface IpcEvents {
   [IpcChannelName.DialogOpenDirectory]: () => Promise<OpenDialogReturnValue>
   [IpcChannelName.PausedChanged]: (value: boolean) => void
   [IpcChannelName.ReposDirChanged]: (value: string) => void
-  [IpcChannelName.ScheduleReorderedByUser]: (value: Scheduling[]) => void
-  [IpcChannelName.ScheduleUpdated]: (value: Scheduling[]) => void
+  [IpcChannelName.ScheduleReorderedByUser]: (value: Repo[]) => void
+  [IpcChannelName.ScheduleUpdated]: (value: Repo[]) => void
   [IpcChannelName.DailyCommitStatusChanged]: (value: DailyCommitStatus) => void
   [IpcChannelName.CommitPushed]: (value: Commit) => void
   [IpcChannelName.UiReady]: () => void
