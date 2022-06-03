@@ -29,16 +29,18 @@
   },
   "homepage": "https://github.com/andrewkolos/evergreen-github-companion#readme",
   "dependencies": {
-    "@akolos/event-emitter": "^2.0.7",
+    "@akolos/event-emitter": "^3.0.0",
     "@octokit/rest": "^18.12.0",
     "cron-time-generator": "^1.3.0",
     "dotenv": "^16.0.1",
     "electron": "^18.2.4",
+    "electron-store": "^8.0.1",
     "fs-extra": "^10.1.0",
     "node-cron": "^3.0.0",
     "react": "^18.1.0",
     "react-dom": "^18.1.0",
-    "simple-git": "^3.7.1"
+    "simple-git": "^3.7.1",
+    "ts-key-enum": "^2.0.11"
   },
   "devDependencies": {
     "@akolos/eslint-config-typescript": "^2.0.0",

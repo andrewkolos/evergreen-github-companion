@@ -1,59 +1,48 @@
 import fse from 'fs-extra'
 import path from 'path'
 import SimpleGit, { DefaultLogFields, ListLogLine } from 'simple-git'
-import { inspect } from 'util'
+
 import { Branch } from './types/branch'
 import { Commit } from './types/commit'
 import { Repo } from './types/repo'
+import { Scheduling } from './types/scheduling'
 
-const GIT_HUB_REPO_DIR_PATH = 'C:/Users/Jozz/Documents/GitHub/'
+export class GitClient {
+  #dir: string
 
-let reposWithUnpushedCommits: Repo[] | undefined
+  #reposWithUnpushedCommits: Promise<Repo[]>
 
-export const GitClient = Object.freeze({
-  async getReposWithUnpushedCommits(): Promise<Repo[]> {
-    if (reposWithUnpushedCommits) return reposWithUnpushedCommits
+  public constructor(dir: string) {
+    this.#dir = dir
+    this.#reposWithUnpushedCommits = getReposWithUnpushedCommits(dir)
+  }
 
-    const dirs = await getRepoFolders()
-
-    const result = (
-      await Promise.all(
-        dirs.map(async (dir) => {
-          const git = SimpleGit(dir)
-          try {
-            // TODO: This handles the repo not being published to GitHub.
-            // Eventually, we'll want to support being able to push new repos up to GitHub
-            await git.listRemote()
-            return await getRepoInfo(dir)
-          } catch {
-            return undefined
-          }
+  async createSchedule(): Promise<Scheduling[]> {
+    return (await this.#reposWithUnpushedCommits).flatMap((repo) =>
+      repo.branches.map(
+        (branch): Scheduling => ({
+          branch,
+          repo,
         }),
-      )
+      ),
     )
-      .filter((repo): repo is Repo => repo != null)
-      .filter((repo) => repo.branches.some((branch) => branch.unpushedCommits.length > 0))
-
-    reposWithUnpushedCommits = result
-    return result
-  },
+  }
 
   async pushNextCommit({ repoPath, branchName }: { repoPath: string; branchName: string }): Promise<void> {
-    if (reposWithUnpushedCommits == null) reposWithUnpushedCommits = await this.getReposWithUnpushedCommits()
+    const reposWithUnpushedCommits = (await this.#reposWithUnpushedCommits).slice()
+
     const repoInfo = reposWithUnpushedCommits.find((repo) => repo.localPath === repoPath)
     if (repoInfo == null) throw Error(`Repo with path '${repoPath}' doesn't exist or has no commits to push.`)
+
     const git = SimpleGit(repoPath)
-    console.log('entered path', repoPath)
     const branch = repoInfo.branches.find((b) => b.name === branchName)
     if (branch == null) {
-      console.error('but')
       throw Error(`Could not find branch '${branchName}'`)
     }
     if (branch.unpushedCommits.length === 0) {
-      console.error('uhnfwe')
       throw Error(`There are no unpushed commits on branch '${branchName}'`)
     }
-    console.log('checking out', branchName)
+
     await git.checkoutLocalBranch(branchName)
 
     const unstagedChangesPresent = !(await git.status(['-s'])).isClean()
@@ -61,7 +50,6 @@ export const GitClient = Object.freeze({
       await git.stash()
     }
 
-    console.log(`git -c sequence.editor="sed -i -re 's/^pick /e /'" -i HEAD~${branch.unpushedCommits.length}`)
     await git.addConfig('sequence.editor', `"sed -i -re 's/^pick /e /'`) // Sets every commit to 'edit' in the rebase script.
     await git.rebase(['-i', `HEAD~${branch.unpushedCommits.length}`])
 
@@ -69,56 +57,76 @@ export const GitClient = Object.freeze({
       const date = new Date()
       date.setMinutes(date.getMinutes() - (branch.unpushedCommits.length - i)) // TODO: Try to preserve date distances instead.
       // eslint-disable-next-line no-await-in-loop -- Intentional. We need to run these git commands in sequence.
-      await git.commit(['--amend', '--no-edit', '--date', date.toISOString()])
+      await git.commit(['--amend', '--no-edit', '--no-verify', '--date', date.toISOString()])
 
-      console.log(`git commit --amend --no-edit --date ${date.toISOString()}`)
+      git.rebase(['--continue'])
     }
 
     const earliestUnPushedCommit = branch.unpushedCommits[0]
 
-    // await git.push('origin', branchName, [`${earliestUnPushedCommit.hash}:${branchName}`])
-    console.log(`git push origin ${branchName} ${earliestUnPushedCommit.hash}:${branchName}`)
+    await git.push(['origin', `${earliestUnPushedCommit.hash}:${branchName}`])
 
-    git.stash(['pop'])
-  },
-})
+    await git.stash(['pop'])
 
-async function getRepoFolders() {
-  return (await fse.readdir(GIT_HUB_REPO_DIR_PATH))
-    .filter(async (file) => {
-      const filePath = path.join(GIT_HUB_REPO_DIR_PATH, file)
-      return (await fse.stat(filePath)).isDirectory()
-    })
-    .map((dir) => path.join(GIT_HUB_REPO_DIR_PATH, dir))
+    this.#reposWithUnpushedCommits = getReposWithUnpushedCommits(this.#dir)
+  }
 }
 
-function parseRepoNameFromUrl(gitUrl: string) {
-  const nameDotGit = gitUrl.split('/').slice(-1)[0]
-  return nameDotGit.split('.')[0]
-}
+async function getReposWithUnpushedCommits(dir: string): Promise<Repo[]> {
+  const dirs = await getRepoFolders()
 
-async function getRepoInfo(dir: string): Promise<Repo | undefined> {
-  const git = SimpleGit(dir)
-
-  const repoName = await getRepoName(dir)
-
-  const branches = (await git.branchLocal()).all
-  const branchesWithUnpushedCommits = (
+  const result = (
     await Promise.all(
-      branches.map(
-        async (branch): Promise<Branch> => ({
-          name: branch,
-          repoName,
-          unpushedCommits: await getUnpushedCommitsForBranch(dir, branch),
-        }),
-      ),
+      dirs.map(async (subDir) => {
+        try {
+          const git = SimpleGit(subDir)
+          // TODO: This handles the repo not being published to GitHub.
+          // Eventually, we'll want to support being able to push new repos up to GitHub
+          await git.listRemote()
+          return await getRepoInfo(subDir)
+        } catch {
+          return undefined
+        }
+      }),
     )
-  ).filter((branch) => branch.unpushedCommits.length > 0)
+  )
+    .filter((repo): repo is Repo => repo != null)
+    .filter((repo) => repo.branches.some((branch) => branch.unpushedCommits.length > 0))
 
-  return {
-    name: repoName,
-    localPath: dir,
-    branches: branchesWithUnpushedCommits,
+  return result
+
+  async function getRepoFolders() {
+    return (await fse.readdir(dir))
+      .filter(async (file) => {
+        const filePath = path.join(dir, file)
+        return (await fse.stat(filePath)).isDirectory()
+      })
+      .map((repoDir) => path.join(dir, repoDir))
+  }
+
+  async function getRepoInfo(repoDir: string): Promise<Repo | undefined> {
+    const git = SimpleGit(repoDir)
+
+    const repoName = await getRepoName(repoDir)
+
+    const branches = (await git.branchLocal()).all
+    const branchesWithUnpushedCommits = (
+      await Promise.all(
+        branches.map(
+          async (branch): Promise<Branch> => ({
+            name: branch,
+            repoName,
+            unpushedCommits: await getUnpushedCommitsForBranch(repoDir, branch),
+          }),
+        ),
+      )
+    ).filter((branch) => branch.unpushedCommits.length > 0)
+
+    return {
+      name: repoName,
+      localPath: dir,
+      branches: branchesWithUnpushedCommits,
+    }
   }
 }
 
@@ -158,4 +166,9 @@ async function getRepoName(repoDir: string): Promise<string> {
   if (typeof gitUrl === 'string') return parseRepoNameFromUrl(gitUrl)
 
   return repoDir.split('/').slice(-1)[0]
+
+  function parseRepoNameFromUrl(url: string) {
+    const nameDotGit = url.split('/').slice(-1)[0]
+    return nameDotGit.split('.')[0]
+  }
 }

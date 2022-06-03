@@ -1,47 +1,76 @@
-import cronTime from 'cron-time-generator'
-import { Menu, MenuItem, Notification, Tray } from 'electron'
-import cron from 'node-cron'
-import { MainWindow } from './main-window'
-import { MyApi } from '../service/ipc/my-api'
-import { DailyCommitStatus } from '../service/ipc/daily-commit-status'
+import { InheritableEventEmitter } from '@akolos/event-emitter'
+import { Menu, MenuItem, Tray } from 'electron'
+import { DailyCommitStatus } from '../git/daily-commit-status'
+import { IpcChannelName, IpcHandlerParams } from '../ipc/ipc-channels'
 
-export function setUpTrayIcon() {
-  const tray = new Tray('./icon.png')
-  const contextMenu = new Menu()
+export interface MyTrayIconEvents {
+  PauseCheckBoxClicked: (nextValue: boolean) => void
+  PushNextCommitButtonClicked: () => void
+  IconClicked: () => void
+}
 
-  MyApi.get().then((api) => {
-    api.on('DailyCommitStatusChanged', ({ newValue }) => {
-      updateIconImage(tray, newValue)
+export interface InitializeTrayIconParams {
+  initialPauseCheckboxValue: boolean
+}
+
+export class MyTrayIcon extends InheritableEventEmitter<MyTrayIconEvents> {
+  static #instance: MyTrayIcon | undefined
+
+  #tray: Tray
+
+  #pausedCheckButton: MenuItem
+
+  static initialize(params: InitializeTrayIconParams): MyTrayIcon {
+    if (this.#instance != null) {
+      throw Error('Cannot initialize the tray icon after it has already been initialized.')
+    }
+    this.#instance = new MyTrayIcon(params)
+    return this.#instance
+  }
+
+  private constructor(params: InitializeTrayIconParams) {
+    super()
+    const tray = new Tray('./icon.png')
+    const contextMenu = new Menu()
+
+    contextMenu.append(
+      new MenuItem({
+        label: 'Push next commit now',
+        click: () => this.emit('PushNextCommitButtonClicked'),
+      }),
+    )
+
+    const pausedCheckButton = new MenuItem({
+      label: 'Pause',
+      type: 'checkbox',
+      checked: params.initialPauseCheckboxValue,
+      click: (event) => this.emit('PauseCheckBoxClicked', event.checked),
     })
-    updateIconImage(tray, api.dailyCommitStatus)
-  })
+    this.#pausedCheckButton = pausedCheckButton
+    contextMenu.append(pausedCheckButton)
 
-  contextMenu.append(
-    new MenuItem({
-      label: 'Push next commit now',
-      click: async () => (await MyApi.get()).pushNextCommit(),
-    }),
-  )
-
-  tray.addListener('click', MainWindow.show)
-
-  cron.schedule(cronTime.everyDayAt(21), () => notifyIfNoCommitPushedToday())
-}
-
-function updateIconImage(tray: Tray, status: DailyCommitStatus) {
-  if (status === DailyCommitStatus.Pushed) {
-    tray.setImage('./green.png')
+    tray.setContextMenu(contextMenu)
+    tray.addListener('click', () => this.emit('IconClicked'))
+    this.#tray = tray
   }
-  if (status === DailyCommitStatus.None) {
-    tray.setImage('./red.png')
-  }
-}
 
-async function notifyIfNoCommitPushedToday(): Promise<void> {
-  if ((await MyApi.get()).dailyCommitStatus === DailyCommitStatus.Pushed) return
-  // eslint-disable-next-line no-new
-  new Notification({
-    title: 'You have not made a commit today',
-    body: 'You have not made a commit today',
-  })
+  notifyOfEvent<T extends IpcChannelName>(channelName: T, ...args: IpcHandlerParams<T>) {
+    if (channelName === IpcChannelName.PausedChanged) {
+      // eslint-disable-next-line prefer-destructuring -- Not for assignments to nonlocal variables.
+      this.#pausedCheckButton.checked = (args as [boolean])[0]
+    }
+    if (channelName === IpcChannelName.DailyCommitStatusChanged) {
+      // I don't know why this type assertion is necessary.
+      this.updateDailyCommitStatus((args as [DailyCommitStatus])[0])
+    }
+  }
+
+  updateDailyCommitStatus(status: DailyCommitStatus) {
+    if (status === DailyCommitStatus.Pushed) {
+      this.#tray.setImage('./green.png')
+    }
+    if (status === DailyCommitStatus.None) {
+      this.#tray.setImage('./red.png')
+    }
+  }
 }

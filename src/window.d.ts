@@ -1,10 +1,10 @@
-import { Scheduler } from './service/ipc/scheduler'
-import { Storage } from './service/ipc/storage'
+import { ipcApi } from './ipc/ipc-api'
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 declare global {
   interface Window {
-    schedulerFactory: (reposDir: string) => Promise<Scheduler>
-    storage: typeof Storage
+    ipcApi: typeof ipcApi
+    initialReposDir: string
+    initialSchedule: null | Promise<Schedule[]>
   }
 }

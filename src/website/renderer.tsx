@@ -10,4 +10,4 @@ if (container == null) {
 const root = createRoot(container)
 
 // eslint-disable-next-line import/newline-after-import
-root.render(<Index api={(window as any).myApi} />)
+root.render(<Index api={window.ipcApi} initialReposDir={window.initialReposDir} />)
