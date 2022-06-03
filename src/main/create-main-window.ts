@@ -13,7 +13,7 @@ export function createMainWindow() {
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
     },
-    icon: './src/static/icon.png',
+    icon: './resources/app/.webpack/main/images/icon.png',
   })
 
   window.setMenuBarVisibility(false)

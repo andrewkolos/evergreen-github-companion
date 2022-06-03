@@ -7,6 +7,8 @@ rules.push({
 })
 
 module.exports = {
+  mode: 'development',
+
   module: {
     rules,
   },

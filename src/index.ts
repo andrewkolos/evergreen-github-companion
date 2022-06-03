@@ -1,11 +1,15 @@
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
-if (require('electron-squirrel-startup')) {
-  app.quit()
+import { app, BrowserWindow, dialog, ipcMain, Notification } from 'electron'
+if (require('electron-squirrel-startup') || process.cwd().toLowerCase().includes('temp')) {
+  // @ts-ignore
+  return app.quit()
 }
+import unhandled from 'electron-unhandled'
+unhandled()
 
 import CronTime from 'cron-time-generator'
 import dotenv from 'dotenv'
-import { app, BrowserWindow, dialog, ipcMain, Notification } from 'electron'
+
 import cron from 'node-cron'
 import dedent from 'ts-dedent'
 import { DailyCommitStatus } from './git/daily-commit-status'
@@ -19,12 +23,15 @@ import { isToday } from './is-today'
 import { createMainWindow } from './main/create-main-window'
 import { getDailyCommitStatus } from './main/get-daily-commit-status'
 import { MyTrayIcon } from './main/set-up-tray-icon'
-import { Storage, StorageEntryKeys } from './storage'
+import { Storage, StorageEntryKeys } from './main/storage'
 
 dotenv.config()
 
 app.on('ready', () => app.setAppUserModelId(process.execPath))
 app.whenReady().then(async () => {
+  new Notification({
+    body: process.cwd(),
+  }).show()
   const mainWindow = createMainWindow()
   ipcMain.handle(IpcChannelName.DialogOpenDirectory, () => handleDirectorySelect())
   ipcMain.handle(IpcChannelName.ReposDirChanged, (_event, ...args: IpcHandlerParams<IpcChannelName.ReposDirChanged>) =>

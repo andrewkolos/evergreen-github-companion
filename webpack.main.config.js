@@ -1,4 +1,8 @@
+const CopyWebpackPlugin = require('copy-webpack-plugin')
+const path = require('path')
+
 module.exports = {
+  mode: 'development',
   /**
    * This is the main entry point for your application, it's the first file
    * that runs in the main process.
@@ -11,4 +15,14 @@ module.exports = {
   resolve: {
     extensions: ['.js', '.ts', '.jsx', '.tsx', '.css', '.json'],
   },
+  plugins: [
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: path.resolve(__dirname, './resources/app/.webpack/main/'),
+          to: path.resolve(__dirname, '.webpack/main'),
+        },
+      ],
+    }),
+  ],
 }

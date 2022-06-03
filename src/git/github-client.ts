@@ -38,7 +38,7 @@ async function getTodaysCommits() {
 
 async function getUsername() {
   const result = (await simpleGit().getConfig('user.name')).value
-  if (result == null) {
+  if (!result) {
     throw Error('No username found in local git configuration. Set it with `git config --add user.name <value>`')
   }
   return result
