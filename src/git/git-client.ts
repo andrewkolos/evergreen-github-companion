@@ -1,3 +1,4 @@
+import { execSync } from 'child_process'
 import fse from 'fs-extra'
 import path from 'path'
 import SimpleGit, { DefaultLogFields, ListLogLine } from 'simple-git'
@@ -31,6 +32,7 @@ export class GitClient {
   async pushNextCommit({ repoPath, branchName }: { repoPath: string; branchName: string }): Promise<void> {
     const reposWithUnpushedCommits = (await this.#reposWithUnpushedCommits).slice()
 
+    console.log('repolocal', reposWithUnpushedCommits)
     const repoInfo = reposWithUnpushedCommits.find((repo) => repo.localPath === repoPath)
     if (repoInfo == null) throw Error(`Repo with path '${repoPath}' doesn't exist or has no commits to push.`)
 
@@ -43,15 +45,23 @@ export class GitClient {
       throw Error(`There are no unpushed commits on branch '${branchName}'`)
     }
 
-    await git.checkoutLocalBranch(branchName)
+    await git.checkout(branchName)
 
     const unstagedChangesPresent = !(await git.status(['-s'])).isClean()
     if (unstagedChangesPresent) {
       await git.stash()
     }
 
-    await git.addConfig('sequence.editor', `"sed -i -re 's/^pick /e /'`) // Sets every commit to 'edit' in the rebase script.
+    {
+      const temp = process.cwd()
+      process.chdir(repoPath)
+      execSync(`git config --add sequence.editor "sed -i -re 's/^pick /e /'"`) // I tried using git.addConfig, but it wouldn't work, giving a no file found error.
+      process.chdir(temp)
+    }
+
+    console.log(`HEAD~${branch.unpushedCommits.length}`)
     await git.rebase(['-i', `HEAD~${branch.unpushedCommits.length}`])
+    console.log('argh2')
 
     for (let i = 0; i < branch.unpushedCommits.length; i += 1) {
       const date = new Date()
@@ -66,7 +76,9 @@ export class GitClient {
 
     await git.push(['origin', `${earliestUnPushedCommit.hash}:${branchName}`])
 
-    await git.stash(['pop'])
+    if (unstagedChangesPresent) {
+      await git.stash(['pop'])
+    }
 
     this.#reposWithUnpushedCommits = getReposWithUnpushedCommits(this.#dir)
   }
@@ -77,13 +89,13 @@ async function getReposWithUnpushedCommits(dir: string): Promise<Repo[]> {
 
   const result = (
     await Promise.all(
-      dirs.map(async (subDir) => {
+      dirs.map(async (d) => {
         try {
-          const git = SimpleGit(subDir)
+          const git = SimpleGit(d)
           // TODO: This handles the repo not being published to GitHub.
           // Eventually, we'll want to support being able to push new repos up to GitHub
           await git.listRemote()
-          return await getRepoInfo(subDir)
+          return await getRepoInfo(d)
         } catch {
           return undefined
         }
@@ -124,7 +136,7 @@ async function getReposWithUnpushedCommits(dir: string): Promise<Repo[]> {
 
     return {
       name: repoName,
-      localPath: dir,
+      localPath: repoDir,
       branches: branchesWithUnpushedCommits,
     }
   }

@@ -21,7 +21,7 @@ export const GitHubClient = Object.freeze({
 const token = process.env.GITHUB_TOKEN
 async function getTodaysCommits() {
   const client = new Octokit({
-    log: console,
+    // log: console,
     auth: token ? `token ${token}` : undefined,
   })
   const events = await client.activity.listEventsForAuthenticatedUser({

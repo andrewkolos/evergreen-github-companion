@@ -55,12 +55,11 @@ app.whenReady().then(async () => {
   })
 
   cron.schedule(CronTime.every(5).minutes(), update)
-  update()
 
   cron.schedule(CronTime.everyDayAt(22, 0), () => {})
 
   async function update() {
-    const schedule = Storage.get(StorageEntryKeys.Schedule)
+    const schedule = Storage.get(StorageEntryKeys.Schedule)?.slice()
     if ((await getDailyCommitStatus()) === DailyCommitStatus.None) {
       if (schedule && schedule.length > 0) {
         const next = schedule.shift()
@@ -114,7 +113,10 @@ app.whenReady().then(async () => {
       throw Error(`Tried to push the next commit for ${repo}/${branch}, but it could not be found.`)
     }
 
-    await new GitClient(repo.localPath).pushNextCommit({ repoPath: repo.localPath, branchName: branch.name })
+    const path = Storage.get(StorageEntryKeys.RepositoriesDirectoryPath)
+    if (path == null) throw Error()
+
+    await new GitClient(path).pushNextCommit({ repoPath: repo.localPath, branchName: branch.name })
 
     const newSchedule = await initializeSchedule()
     sendToMainWindow(IpcChannelName.ScheduleUpdated, newSchedule ?? [])
