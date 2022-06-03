@@ -1,7 +1,7 @@
 {
   "name": "evergreen-github-companion",
   "productName": "Evergreen GitHub Companion",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "private": "true",
   "description": "Helps you keep your GitHub profile green (and not through illegitimate means).",
   "main": ".webpack/main",

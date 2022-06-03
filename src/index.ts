@@ -62,8 +62,6 @@ app.whenReady().then(async () => {
 
   cron.schedule(CronTime.every(5).minutes(), update)
 
-  cron.schedule(CronTime.everyDayAt(22, 0), () => {})
-
   async function update() {
     console.log('Updating...')
     const schedule = Storage.get(StorageEntryKeys.Schedule)?.slice()
