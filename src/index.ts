@@ -92,11 +92,12 @@ void app.whenReady().then(async () => {
 
     const currentStatus = await getDailyCommitStatus(gitHubUsername)
     const schedule = Storage.get(StorageEntryKeys.Schedule)?.slice()
+
     if (currentStatus === DailyCommitStatus.None) {
       if (schedule && schedule.length > 0) {
         const next = schedule.shift()
         if (!next) throw Error()
-        // await pushNextCommit(next.repo, next.branch)
+        await pushNextCommit(next.repo, next.branch)
 
         new Notification({
           title: 'Pushed daily commit',

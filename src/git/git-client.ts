@@ -1,4 +1,3 @@
-import { execSync } from 'child_process'
 import fse from 'fs-extra'
 import path from 'path'
 import SimpleGit, { DefaultLogFields, ListLogLine } from 'simple-git'
@@ -51,12 +50,7 @@ export class GitClient {
       await git.stash()
     }
 
-    {
-      const temp = process.cwd()
-      process.chdir(repoPath)
-      execSync(`git config --add sequence.editor "sed -i -re 's/^pick /e /'"`) // I tried using git.addConfig, but it wouldn't work, giving a no file found error.
-      process.chdir(temp)
-    }
+    await git.addConfig('sequence.editor', `"-sed -i -re 's/^pick /e /'"`)
 
     await git.rebase(['-i', `HEAD~${branch.unpushedCommits.length}`])
 
