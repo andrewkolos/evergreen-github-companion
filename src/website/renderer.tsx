@@ -8,4 +8,6 @@ if (container == null) {
   throw Error(`Could not find container element to render application to.`)
 }
 const root = createRoot(container)
-root.render(<Index api={window.myApi} />)
+
+// eslint-disable-next-line import/newline-after-import
+root.render(<Index api={(window as any).myApi} />)

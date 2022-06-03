@@ -1,21 +1,8 @@
+import { MyApi } from '../service/ipc/my-api'
+
 // All of the Node.js APIs are available in the preload process.
 // It has the same sandbox as a Chrome extension.
 
-export class MyApi {
-  static async create() {}
-
-  private constructor() {}
-}
-const myApi = {
-  async getScheduling() {
-    return Promise.resolve()
-  },
-}
-
-export interface Scheduling {
-  repoName: string
-  branchName: string
-  commitName: string
-}
-
-;(window as any).myApi = { loadRepos: () => Promise.resolve([]) }
+export const FrontEnd = Object.freeze({})
+console.log('Preloading...')
+;(window as any).myApi = MyApi.get()

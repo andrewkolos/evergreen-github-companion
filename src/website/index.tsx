@@ -1,45 +1,29 @@
 import React, { useEffect } from 'react'
-import { MyApi } from '../electron/preload'
-import { GitClient } from '../service/git/git-client'
-import { Repo } from '../service/git/types/repo'
-import { RepoListing } from './components/RepoListing/RepoListing'
+import { MyApi } from '../service/ipc/my-api'
+import { Scheduling } from '../service/ipc/scheduling'
+import { SchedulingListing } from './components/SchedulingListing'
 
 export interface IndexProps {
-  api: MyApi
+  api: Promise<MyApi>
 }
 
 export const Index: React.FC<IndexProps> = ({ api }) => {
-  const [repos, setRepos] = React.useState<Repo[] | undefined>(undefined)
+  const [schedule, setSchedule] = React.useState<Scheduling[] | undefined>(undefined)
 
   useEffect(() => {
-    refreshRepos()
+    api.then((a) => {
+      setSchedule(a.schedule)
+      a.on('ScheduleUpdated', ({ newSchedule }) => setSchedule(newSchedule))
+    })
   })
 
-  return repos == null ? (
+  return schedule == null ? (
     <span>Loading...</span>
   ) : (
     <>
-      {repos.map((repo) => (
-        <RepoListing
-          key={repo.name}
-          repo={repo}
-          onPushCommit={(branch, commit) => pushCommit(repo.localPath, branch, commit.hash)}
-        />
+      {schedule.map((scheduling: Scheduling) => (
+        <SchedulingListing key={scheduling.repo.name + scheduling.branch.name} scheduling={scheduling} />
       ))}
     </>
   )
-
-  async function refreshRepos() {
-    const refreshedRepos = await GitClient.getReposWithUnpushedCommits()
-    setRepos(refreshedRepos)
-  }
-
-  async function pushCommit(repoPath: string, branchName: string, commitHash: string) {
-    await GitClient.pushNextCommit({
-      repoPath,
-      branchName,
-      commitHash,
-    })
-    await refreshRepos()
-  }
 }

@@ -29,6 +29,7 @@
   },
   "homepage": "https://github.com/andrewkolos/evergreen-github-companion#readme",
   "dependencies": {
+    "@akolos/event-emitter": "^2.0.7",
     "@octokit/rest": "^18.12.0",
     "cron-time-generator": "^1.3.0",
     "dotenv": "^16.0.1",

@@ -1,64 +1,47 @@
 import cronTime from 'cron-time-generator'
-import { BrowserWindow, Notification, Tray, screen } from 'electron'
+import { Menu, MenuItem, Notification, Tray } from 'electron'
 import cron from 'node-cron'
-import path from 'path'
-import { GitHubClient } from '../service/git/github-client'
-import { isToday } from '../is-today'
+import { MainWindow } from './main-window'
+import { MyApi } from '../service/ipc/my-api'
+import { DailyCommitStatus } from '../service/ipc/daily-commit-status'
 
 export function setUpTrayIcon() {
   const tray = new Tray('./icon.png')
-  // const contextMenu = Menu.buildFromTemplate([{ label: 'About', type: 'normal', click: () => createWindow() }])
-  // tray.setContextMenu(contextMenu)
+  const contextMenu = new Menu()
 
-  tray.addListener('click', createWindow)
-  createWindow()
+  MyApi.get().then((api) => {
+    api.on('DailyCommitStatusChanged', ({ newValue }) => {
+      updateIconImage(tray, newValue)
+    })
+    updateIconImage(tray, api.dailyCommitStatus)
+  })
 
-  cron.schedule(cronTime.every(5).minutes(), () => checkForDailyCommit(tray))
+  contextMenu.append(
+    new MenuItem({
+      label: 'Push next commit now',
+      click: async () => (await MyApi.get()).pushNextCommit(),
+    }),
+  )
+
+  tray.addListener('click', MainWindow.show)
+
+  cron.schedule(cronTime.everyDayAt(21), () => notifyIfNoCommitPushedToday())
 }
 
-let lastKnownCommitDate: Date | undefined
-let lastShownNotificationDate: Date | undefined
-
-async function checkForDailyCommit(tray: Tray): Promise<void> {
-  if (lastKnownCommitDate != null && isToday(lastKnownCommitDate)) return
-
-  const commits = await GitHubClient.getTodaysCommits()
-  if (commits.length > 0) {
+function updateIconImage(tray: Tray, status: DailyCommitStatus) {
+  if (status === DailyCommitStatus.Pushed) {
     tray.setImage('./green.png')
-    lastKnownCommitDate = new Date()
-  } else {
-    if (lastShownNotificationDate != null && isToday(lastShownNotificationDate)) return
-    const now = new Date()
-    // eslint-disable-next-line no-new
-    new Notification({
-      title: 'You have not made a commit today',
-      body: 'You have not made a commit today',
-    })
-    lastShownNotificationDate = now
+  }
+  if (status === DailyCommitStatus.None) {
     tray.setImage('./red.png')
   }
 }
 
-function createWindow() {
-  const window = new BrowserWindow({
-    width: 1280,
-    height: 720,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false, // TODO: Enable. https://www.electronjs.org/docs/latest/tutorial/context-isolation
-      preload: path.join(__dirname, 'preload.js'),
-    },
+async function notifyIfNoCommitPushedToday(): Promise<void> {
+  if ((await MyApi.get()).dailyCommitStatus === DailyCommitStatus.Pushed) return
+  // eslint-disable-next-line no-new
+  new Notification({
+    title: 'You have not made a commit today',
+    body: 'You have not made a commit today',
   })
-  window.setMenuBarVisibility(false)
-  window.loadFile(`../website/index.html`)
-  if (process.env.NODE_ENV === 'development') {
-    setTimeout(() => {
-      window.show()
-      window.focus()
-      window.center()
-      window.moveTop()
-      window.setBounds({ x: 2554, y: 0, width: 1280, height: 720 }, true)
-      window.webContents.openDevTools()
-    }, 0)
-  }
 }

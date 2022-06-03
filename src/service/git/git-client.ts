@@ -1,28 +1,22 @@
 import fse from 'fs-extra'
 import path from 'path'
 import SimpleGit, { DefaultLogFields, ListLogLine } from 'simple-git'
+import { inspect } from 'util'
 import { Branch } from './types/branch'
 import { Commit } from './types/commit'
 import { Repo } from './types/repo'
 
 const GIT_HUB_REPO_DIR_PATH = 'C:/Users/Jozz/Documents/GitHub/'
 
-export interface MakeAndPushCommitParams {
-  repoPath: string
-  branchName: string
-  commitHash: string
-}
+let reposWithUnpushedCommits: Repo[] | undefined
 
 export const GitClient = Object.freeze({
   async getReposWithUnpushedCommits(): Promise<Repo[]> {
-    const dirs = (await fse.readdir(GIT_HUB_REPO_DIR_PATH))
-      .filter(async (file) => {
-        const filePath = path.join(GIT_HUB_REPO_DIR_PATH, file)
-        return (await fse.stat(filePath)).isDirectory()
-      })
-      .map((dir) => path.join(GIT_HUB_REPO_DIR_PATH, dir))
+    if (reposWithUnpushedCommits) return reposWithUnpushedCommits
 
-    return (
+    const dirs = await getRepoFolders()
+
+    const result = (
       await Promise.all(
         dirs.map(async (dir) => {
           const git = SimpleGit(dir)
@@ -39,27 +33,64 @@ export const GitClient = Object.freeze({
     )
       .filter((repo): repo is Repo => repo != null)
       .filter((repo) => repo.branches.some((branch) => branch.unpushedCommits.length > 0))
+
+    reposWithUnpushedCommits = result
+    return result
   },
 
-  async pushNextCommit({ repoPath, branchName }: MakeAndPushCommitParams): Promise<void> {
+  async pushNextCommit({ repoPath, branchName }: { repoPath: string; branchName: string }): Promise<void> {
+    if (reposWithUnpushedCommits == null) reposWithUnpushedCommits = await this.getReposWithUnpushedCommits()
+    const repoInfo = reposWithUnpushedCommits.find((repo) => repo.localPath === repoPath)
+    if (repoInfo == null) throw Error(`Repo with path '${repoPath}' doesn't exist or has no commits to push.`)
     const git = SimpleGit(repoPath)
-    const repoInfo = await getRepoInfo(repoPath)
-    if (repoInfo == null) throw Error('uhh')
+    console.log('entered path', repoPath)
     const branch = repoInfo.branches.find((b) => b.name === branchName)
     if (branch == null) {
+      console.error('but')
       throw Error(`Could not find branch '${branchName}'`)
     }
     if (branch.unpushedCommits.length === 0) {
+      console.error('uhnfwe')
       throw Error(`There are no unpushed commits on branch '${branchName}'`)
     }
-    const earliestUnPushedCommit = branch.unpushedCommits
-      .slice()
-      .sort((c1, c2) => new Date(c1.date).getTime() - new Date(c2.date).getTime())[0]
-
+    console.log('checking out', branchName)
     await git.checkoutLocalBranch(branchName)
-    await git.push('origin', branchName, [`${earliestUnPushedCommit.hash}:${branchName}`])
+
+    const unstagedChangesPresent = !(await git.status(['-s'])).isClean()
+    if (unstagedChangesPresent) {
+      await git.stash()
+    }
+
+    console.log(`git -c sequence.editor="sed -i -re 's/^pick /e /'" -i HEAD~${branch.unpushedCommits.length}`)
+    await git.addConfig('sequence.editor', `"sed -i -re 's/^pick /e /'`) // Sets every commit to 'edit' in the rebase script.
+    await git.rebase(['-i', `HEAD~${branch.unpushedCommits.length}`])
+
+    for (let i = 0; i < branch.unpushedCommits.length; i += 1) {
+      const date = new Date()
+      date.setMinutes(date.getMinutes() - (branch.unpushedCommits.length - i)) // TODO: Try to preserve date distances instead.
+      // eslint-disable-next-line no-await-in-loop -- Intentional. We need to run these git commands in sequence.
+      await git.commit(['--amend', '--no-edit', '--date', date.toISOString()])
+
+      console.log(`git commit --amend --no-edit --date ${date.toISOString()}`)
+    }
+
+    const earliestUnPushedCommit = branch.unpushedCommits[0]
+
+    // await git.push('origin', branchName, [`${earliestUnPushedCommit.hash}:${branchName}`])
+    console.log(`git push origin ${branchName} ${earliestUnPushedCommit.hash}:${branchName}`)
+
+    git.stash(['pop'])
   },
 })
+
+async function getRepoFolders() {
+  return (await fse.readdir(GIT_HUB_REPO_DIR_PATH))
+    .filter(async (file) => {
+      const filePath = path.join(GIT_HUB_REPO_DIR_PATH, file)
+      return (await fse.stat(filePath)).isDirectory()
+    })
+    .map((dir) => path.join(GIT_HUB_REPO_DIR_PATH, dir))
+}
 
 function parseRepoNameFromUrl(gitUrl: string) {
   const nameDotGit = gitUrl.split('/').slice(-1)[0]
