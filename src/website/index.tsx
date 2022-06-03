@@ -35,11 +35,11 @@ export const Index: React.FC<IndexProps> = ({ api, initialReposDir }) => {
   })
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-slate-50">
       <div className="p-2 flex flex-grow flex-col">
         <DirectoryChooser value={reposDir ?? ''} onSelectionIntent={handleDirSelectIntent} />
         <hr className="divide my-3" />
-        <h1 className="text-2xl font-bold block text-center">Auto-Push Schedule</h1>
+        <h1 className="text-2xl font-bold block text-center mb-2">Auto-Push Schedule</h1>
         <div className="flex-grow">{renderSchedule()}</div>
       </div>
       <DailyCommitStatusDisplay status={dailyCommitStatus} />

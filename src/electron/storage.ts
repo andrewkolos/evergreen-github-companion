@@ -1,7 +1,6 @@
 import { EventEmitter } from '@akolos/event-emitter'
 import ElectronStore from 'electron-store'
 import { Scheduling } from '../git/types/scheduling'
-import { isDev } from '../is-dev'
 
 export enum StorageEntryKeys {
   RepositoriesDirectoryPath = 'RepositoriesDirectoryPath',
@@ -26,7 +25,7 @@ interface StorageEvents {
 const storageDefaults: { [key in StorageEntryKeys]: StorageEntries[key] } = {
   [StorageEntryKeys.RepositoriesDirectoryPath]: null,
   [StorageEntryKeys.Schedule]: null,
-  [StorageEntryKeys.Paused]: isDev(),
+  [StorageEntryKeys.Paused]: false,
 }
 
 const eventEmitter = new EventEmitter<StorageEvents>()

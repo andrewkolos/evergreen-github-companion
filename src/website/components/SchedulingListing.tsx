@@ -23,7 +23,7 @@ export const SchedulingListing: React.FC<RepoProps> = ({ scheduling, order }) =>
       style={style}
       {...attributes}
       {...listeners}
-      className="bg-white rounded-lg ring-1 ring-black/30 shadow-lg"
+      className="bg-white rounded-md shadow-md mb-4 ring-1 ring-gray-400"
     >
       <div className="relative w-100">
         <div className="text-2xl text-slate-400 text-right absolute top-3 right-10">{order.toString()}</div>

@@ -2,6 +2,7 @@ import CronTime from 'cron-time-generator'
 import dotenv from 'dotenv'
 import { app, dialog, ipcMain, Notification } from 'electron'
 import cron from 'node-cron'
+import dedent from 'ts-dedent'
 import { DailyCommitStatus } from '../git/daily-commit-status'
 import { GitClient } from '../git/git-client'
 import { GitHubClient } from '../git/github-client'
@@ -17,8 +18,7 @@ import { Storage, StorageEntryKeys } from './storage'
 
 dotenv.config()
 
-app.setAppUserModelId(process.execPath)
-
+app.on('ready', () => app.setAppUserModelId(process.execPath))
 app.whenReady().then(async () => {
   const mainWindow = createMainWindow()
   ipcMain.handle(IpcChannelName.DialogOpenDirectory, () => handleDirectorySelect())
@@ -65,6 +65,12 @@ app.whenReady().then(async () => {
         const next = schedule.shift()
         if (!next) throw Error()
         await pushNextCommit(next.repo, next.branch)
+
+        new Notification({
+          title: 'Pushed daily commit',
+          body: dedent`Pushed the next commit of: ${next.repo.name}/${next.branch.name}?.
+            Commit name: ${next.branch.unpushedCommits[0]}`,
+        }).show()
       }
     }
 
@@ -143,10 +149,9 @@ async function notifyOfNoCommitForToday(commitStatus: DailyCommitStatus): Promis
   if (commitStatus !== DailyCommitStatus.None) return
 
   if (new Date().getHours() > 20 && !isToday(lastTimeNotified)) {
-    // eslint-disable-next-line no-new
     new Notification({
       title: 'You have not made a commit today',
-    })
+    }).show()
     lastTimeNotified = new Date()
   }
 }
