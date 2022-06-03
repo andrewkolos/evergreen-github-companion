@@ -1,7 +1,6 @@
 import CronTime from 'cron-time-generator'
 import dotenv from 'dotenv'
 import { app, dialog, ipcMain, Notification } from 'electron'
-import ElectronStore from 'electron-store'
 import cron from 'node-cron'
 import { DailyCommitStatus } from '../git/daily-commit-status'
 import { GitClient } from '../git/git-client'

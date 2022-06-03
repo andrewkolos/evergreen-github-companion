@@ -1,5 +1,6 @@
 import { Octokit } from '@octokit/rest'
 import dotenv from 'dotenv'
+import simpleGit from 'simple-git'
 import { isToday } from '../is-today'
 import { DailyCommitStatus } from './daily-commit-status'
 
@@ -24,7 +25,7 @@ async function getTodaysCommits() {
     auth: token ? `token ${token}` : undefined,
   })
   const events = await client.activity.listEventsForAuthenticatedUser({
-    username: 'andrewkolos',
+    username: await getUsername(),
   })
   return events.data.filter((event) => {
     if (event.created_at == null) {
@@ -33,4 +34,12 @@ async function getTodaysCommits() {
     }
     return isToday(new Date(event.created_at))
   })
+}
+
+async function getUsername() {
+  const result = (await simpleGit().getConfig('user.name')).value
+  if (result == null) {
+    throw Error('No username found in local git configuration. Set it with `git config --add user.name <value>`')
+  }
+  return result
 }
