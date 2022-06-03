@@ -17,5 +17,27 @@ body {
   height: 100%;
   margin: 0;
   overflow: hidden;
+}
 
+@layer components {
+  .btn {
+    @apply bg-blue-600 rounded p-3 font-bold text-white;
+  }
+
+  .btn:hover(:not(:disabled)) {
+    @apply bg-blue-500;
+  }
+
+  .btn:focus {
+    @apply bg-blue-500;
+  }
+
+  .btn:active {
+    @apply border-black;
+  }
+
+  .btn:disabled {
+    opacity: theme('opacity.50');
+    cursor: not-allowed;
+  }
 }

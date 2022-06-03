@@ -4,7 +4,8 @@ import { ipcApi } from './ipc/ipc-api'
 declare global {
   interface Window {
     ipcApi: typeof ipcApi
-    initialReposDir: string
+    initialReposDir: string | null
+    initialGitHubUsername: string | null
     initialSchedule: null | Promise<Schedule[]>
   }
 }

@@ -10,8 +10,8 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "eslint",
-    "lint:fix": "eslint --fix",
+    "lint": "eslint ./src",
+    "lint:fix": "eslint ./src --fix",
     "format": "prettier --config .prettierrc.js * --write",
     "prepare": "husky install",
     "precommit": "npm run lint:fix && npm run format && npm run test",
@@ -72,7 +72,7 @@
     }
   },
   "devDependencies": {
-    "@akolos/eslint-config-typescript": "^2.0.0",
+    "@akolos/eslint-config-typescript": "^3.0.0",
     "@akolos/prettier-config": "^1.0.0",
     "@electron-forge/cli": "^6.0.0-beta.63",
     "@electron-forge/maker-deb": "^6.0.0-beta.63",
@@ -94,7 +94,11 @@
     "css-loader": "^6.0.0",
     "electron": "19.0.1",
     "eslint": "^8.0.1",
+    "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-import": "^2.25.0",
+    "eslint-plugin-jsx-a11y": "^6.5.1",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-react": "^7.30.0",
     "fork-ts-checker-webpack-plugin": "^6.0.1",
     "glob": "^8.0.3",
     "husky": "^8.0.1",
@@ -106,7 +110,8 @@
     "style-loader": "^3.0.0",
     "tailwindcss": "^3.0.24",
     "ts-loader": "^9.2.2",
-    "typescript": "~4.5.4"
+    "typescript": "~4.5.4",
+    "zod": "^3.17.3"
   },
   "dependencies": {
     "@akolos/event-emitter": "^3.0.2",

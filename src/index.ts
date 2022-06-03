@@ -1,10 +1,16 @@
+/* eslint-disable import/first -- Need to be able to quit ASAP if we are running from Squirrel setup. */
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 import { app, BrowserWindow, dialog, ipcMain, Notification } from 'electron'
-if (require('electron-squirrel-startup') || process.cwd().toLowerCase().includes('temp')) {
-  // @ts-ignore
-  return app.quit()
+
+// eslint-disable-next-line
+const isSquirrel = require('electron-squirrel-startup') as boolean
+
+if (isSquirrel || process.cwd().toLowerCase().includes('squirrel')) {
+  app.quit()
 }
+
 import unhandled from 'electron-unhandled'
+
 unhandled()
 
 import CronTime from 'cron-time-generator'
@@ -14,7 +20,6 @@ import cron from 'node-cron'
 import dedent from 'ts-dedent'
 import { DailyCommitStatus } from './git/daily-commit-status'
 import { GitClient } from './git/git-client'
-import { GitHubClient } from './git/github-client'
 import { Branch } from './git/types/branch'
 import { Repo } from './git/types/repo'
 import { Scheduling } from './git/types/scheduling'
@@ -46,9 +51,15 @@ app.whenReady().then(async () => {
     handlePausedToggle(...args),
   )
   ipcMain.handle(IpcChannelName.UiReady, () => {
-    sendToMainWindow(IpcChannelName.ScheduleUpdated, Storage.get(StorageEntryKeys.Schedule))
+    sendToMainWindow(IpcChannelName.ScheduleUpdated, Storage.get(StorageEntryKeys.Schedule) ?? [])
     update()
   })
+  ipcMain.handle(
+    IpcChannelName.GitHubUsernameChanged,
+    (_event, ...args: IpcHandlerParams<IpcChannelName.GitHubUsernameChanged>) => {
+      Storage.set(StorageEntryKeys.GitHubUsername, args[0])
+    },
+  )
 
   const trayIcon = MyTrayIcon.initialize({
     initialPauseCheckboxValue: Storage.get(StorageEntryKeys.Paused),
@@ -68,11 +79,17 @@ app.whenReady().then(async () => {
   })
 
   cron.schedule(CronTime.every(5).minutes(), update)
+  sendToMainWindow(IpcChannelName.PausedChanged, Storage.get(StorageEntryKeys.Paused))
 
   async function update() {
     console.log('Updating...')
+
+    const gitHubUsername = Storage.get(StorageEntryKeys.GitHubUsername)
+    if (gitHubUsername == null) return
+
+    const currentStatus = await getDailyCommitStatus(gitHubUsername)
     const schedule = Storage.get(StorageEntryKeys.Schedule)?.slice()
-    if ((await getDailyCommitStatus()) === DailyCommitStatus.None) {
+    if (currentStatus === DailyCommitStatus.None) {
       if (schedule && schedule.length > 0) {
         const next = schedule.shift()
         if (!next) throw Error()
@@ -80,15 +97,13 @@ app.whenReady().then(async () => {
 
         new Notification({
           title: 'Pushed daily commit',
-          body: dedent`Pushed the next commit of: ${next.repo.name}/${next.branch.name}?.
-            Commit name: ${next.branch.unpushedCommits[0]}`,
+          body: dedent`Pushed the next commit of: ${next.repo.name}/${next.branch.name},
+            ${next.branch.unpushedCommits[0].message}`,
         }).show()
       }
     }
 
-    sendToMainWindow(IpcChannelName.PausedChanged, Storage.get(StorageEntryKeys.Paused))
-
-    const nextStatus = await GitHubClient.getTodaysCommitStatus()
+    const nextStatus = await getDailyCommitStatus(gitHubUsername)
     notifyOfNoCommitForToday(nextStatus)
     sendToMainWindow(IpcChannelName.DailyCommitStatusChanged, nextStatus)
     trayIcon.notifyOfEvent(IpcChannelName.DailyCommitStatusChanged, nextStatus)
@@ -132,7 +147,9 @@ app.whenReady().then(async () => {
     }
 
     const path = Storage.get(StorageEntryKeys.RepositoriesDirectoryPath)
-    if (path == null) throw Error()
+    if (path == null) {
+      throw Error()
+    }
 
     await new GitClient(path).pushNextCommit({ repoPath: repo.localPath, branchName: branch.name })
 
@@ -148,7 +165,7 @@ app.whenReady().then(async () => {
 
 async function initializeSchedule(): Promise<Scheduling[] | undefined> {
   const dir = Storage.get(StorageEntryKeys.RepositoriesDirectoryPath)
-  if (!dir) return undefined
+  if (dir == null) return undefined
   return new GitClient(dir).createSchedule()
 }
 

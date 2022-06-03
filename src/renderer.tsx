@@ -15,5 +15,9 @@ root.render(
   //   api: window.ipcApi,
   //   initialReposDir: window.initialReposDir,
   // }),
-  <Index api={window.ipcApi} initialReposDir={window.initialReposDir} />,
+  <Index
+    api={window.ipcApi}
+    initialReposDir={window.initialReposDir}
+    initialGitHubUserName={window.initialGitHubUsername}
+  />,
 )

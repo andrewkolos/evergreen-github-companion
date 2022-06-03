@@ -6,5 +6,8 @@ import { Storage, StorageEntryKeys } from './main/storage'
 // It has the same sandbox as a Chrome extension.
 
 const reposDir = Storage.get(StorageEntryKeys.RepositoriesDirectoryPath)
+const gitHubUsername = Storage.get(StorageEntryKeys.GitHubUsername)
+
 contextBridge.exposeInMainWorld(`ipcApi`, ipcApi)
 contextBridge.exposeInMainWorld('initialReposDir', reposDir)
+contextBridge.exposeInMainWorld('initialGitHubUsername', gitHubUsername)

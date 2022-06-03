@@ -1,31 +1,31 @@
 import { Octokit } from '@octokit/rest'
 import dotenv from 'dotenv'
-import simpleGit from 'simple-git'
 import { isToday } from '../is-today'
 import { DailyCommitStatus } from './daily-commit-status'
 
 dotenv.config()
 
-export const GitHubClient = Object.freeze({
-  getTodaysCommitStatus: async () => {
-    const commits = await getTodaysCommits()
+export const GitHubClient = (username: string) =>
+  Object.freeze({
+    getTodaysCommitStatus: async () => {
+      const commits = await getTodaysCommits(username)
 
-    if (commits.length > 0) {
-      return DailyCommitStatus.Pushed
-    }
+      if (commits.length > 0) {
+        return DailyCommitStatus.Pushed
+      }
 
-    return DailyCommitStatus.None
-  },
-})
+      return DailyCommitStatus.None
+    },
+  })
 
 const token = process.env.GITHUB_TOKEN
-async function getTodaysCommits() {
+async function getTodaysCommits(username: string) {
   const client = new Octokit({
     log: console,
-    auth: token ? `token ${token}` : undefined,
+    auth: token != null ? `token ${token}` : undefined,
   })
   const events = await client.activity.listEventsForAuthenticatedUser({
-    username: await getUsername(),
+    username,
   })
   return events.data.filter((event) => {
     if (event.created_at == null) {
@@ -34,12 +34,4 @@ async function getTodaysCommits() {
     }
     return isToday(new Date(event.created_at))
   })
-}
-
-async function getUsername() {
-  const result = (await simpleGit().getConfig('user.name')).value
-  if (!result) {
-    throw Error('No username found in local git configuration. Set it with `git config --add user.name <value>`')
-  }
-  return result
 }

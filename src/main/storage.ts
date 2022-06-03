@@ -6,12 +6,14 @@ export enum StorageEntryKeys {
   RepositoriesDirectoryPath = 'RepositoriesDirectoryPath',
   Schedule = 'Schedule',
   Paused = 'Paused',
+  GitHubUsername = 'GitHubUsername',
 }
 
 interface StorageEntries {
   [StorageEntryKeys.RepositoriesDirectoryPath]: string | null
   [StorageEntryKeys.Schedule]: Scheduling[] | null
   [StorageEntryKeys.Paused]: boolean
+  [StorageEntryKeys.GitHubUsername]: string | null
 }
 
 interface StorageEvents {
@@ -26,6 +28,7 @@ const storageDefaults: { [key in StorageEntryKeys]: StorageEntries[key] } = {
   [StorageEntryKeys.RepositoriesDirectoryPath]: null,
   [StorageEntryKeys.Schedule]: null,
   [StorageEntryKeys.Paused]: false,
+  [StorageEntryKeys.GitHubUsername]: null,
 }
 
 const eventEmitter = new EventEmitter<StorageEvents>()

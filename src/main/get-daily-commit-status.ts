@@ -9,8 +9,8 @@ let lastCheckResult:
     }
   | undefined
 
-export async function getDailyCommitStatus(): Promise<DailyCommitStatus> {
-  const result = await impl()
+export async function getDailyCommitStatus(gitHubUsername: string): Promise<DailyCommitStatus> {
+  const result = await impl(gitHubUsername)
   lastCheckResult = {
     status: result,
     checkedTime: new Date(),
@@ -18,7 +18,7 @@ export async function getDailyCommitStatus(): Promise<DailyCommitStatus> {
   return result
 }
 
-async function impl() {
+async function impl(gitHubUsername: string) {
   if (lastCheckResult != null) {
     const { status, checkedTime } = lastCheckResult
     if (status === DailyCommitStatus.Pushed && isToday(checkedTime)) {
@@ -26,5 +26,5 @@ async function impl() {
     }
   }
 
-  return GitHubClient.getTodaysCommitStatus()
+  return GitHubClient(gitHubUsername).getTodaysCommitStatus()
 }

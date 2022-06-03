@@ -25,6 +25,8 @@ const rendererToMain = {
     ipcRenderer.invoke(IpcChannelName.ScheduleReorderedByUser, ...args),
   unpause: () => ipcRenderer.invoke(IpcChannelName.PausedChanged, false),
   sendUiReadySignal: () => ipcRenderer.invoke(IpcChannelName.UiReady),
+  gitHubUsernameChanged: (...args: IpcHandlerParams<IpcChannelName.GitHubUsernameChanged>) =>
+    ipcRenderer.invoke(IpcChannelName.GitHubUsernameChanged, ...args),
 }
 
 export const ipcApi = Object.freeze({

@@ -21,7 +21,7 @@ export const DailyCommitStatusDisplay: React.FC<DailyCommitStatusDisplayProps> =
       case DailyCommitStatus.Pushed:
         return 'bg-green-600 text-white'
       case DailyCommitStatus.None:
-        return 'bg-yellow-600 text-black'
+        return 'bg-blue-600 text-white'
       case DailyCommitStatus.Unknown:
         return ''
       default:
