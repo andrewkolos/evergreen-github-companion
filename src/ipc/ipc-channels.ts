@@ -10,6 +10,7 @@ export enum IpcChannelName {
   ScheduleUpdated = 'ScheduleUpdated',
   DailyCommitStatusChanged = 'DailyCommitStatusChanged',
   CommitPushed = 'CommitPushed',
+  UiReady = 'UiReady',
 }
 
 interface IpcEvents {
@@ -20,6 +21,7 @@ interface IpcEvents {
   [IpcChannelName.ScheduleUpdated]: (value: Scheduling[]) => void
   [IpcChannelName.DailyCommitStatusChanged]: (value: DailyCommitStatus) => void
   [IpcChannelName.CommitPushed]: (value: Commit) => void
+  [IpcChannelName.UiReady]: () => void
 }
 
 export type IpcHandler<E extends IpcChannelName> = IpcEvents[E]

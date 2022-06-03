@@ -18,7 +18,7 @@ export function createMainWindow() {
       window.focus()
       window.center()
       window.moveTop()
-      window.setBounds({ x: 2554, y: 0, width: 1280, height: 720 }, true)
+      window.setBounds({ x: 2554, y: 0, width: 520, height: 720 }, true)
       window.webContents.openDevTools()
     }, 50)
   }

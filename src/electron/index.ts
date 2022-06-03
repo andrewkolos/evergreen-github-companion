@@ -1,8 +1,8 @@
 import CronTime from 'cron-time-generator'
 import dotenv from 'dotenv'
 import { app, dialog, ipcMain, Notification } from 'electron'
+import ElectronStore from 'electron-store'
 import cron from 'node-cron'
-import { inspect } from 'util'
 import { DailyCommitStatus } from '../git/daily-commit-status'
 import { GitClient } from '../git/git-client'
 import { GitHubClient } from '../git/github-client'
@@ -12,58 +12,57 @@ import { Scheduling } from '../git/types/scheduling'
 import { IpcChannelName, IpcHandlerParams } from '../ipc/ipc-channels'
 import { isToday } from '../is-today'
 import { createMainWindow } from './create-main-window'
+import { getDailyCommitStatus } from './get-daily-commit-status'
 import { MyTrayIcon } from './set-up-tray-icon'
 import { Storage, StorageEntryKeys } from './storage'
 
 dotenv.config()
 
-enum EventSource {
-  Main = 'Main',
-  Renderer = 'Renderer',
-}
-
 app.setAppUserModelId(process.execPath)
 
 app.whenReady().then(async () => {
-  if (process.env.NODE_ENV === 'development') {
-    Storage.set(StorageEntryKeys.RepositoriesDirectoryPath, 'C:/Users/Jozz/Documents/GitHub/')
-  }
-
-  let commitStatus = DailyCommitStatus.Unknown
-
   const mainWindow = createMainWindow()
   ipcMain.handle(IpcChannelName.DialogOpenDirectory, () => handleDirectorySelect())
-  ipcMain.handle(IpcChannelName.ReposDirChanged, (event, ...args: IpcHandlerParams<IpcChannelName.ReposDirChanged>) =>
+  ipcMain.handle(IpcChannelName.ReposDirChanged, (_event, ...args: IpcHandlerParams<IpcChannelName.ReposDirChanged>) =>
     handleReposDirChanged(...args),
   )
   ipcMain.handle(
     IpcChannelName.ScheduleReorderedByUser,
-    (event, ...args: IpcHandlerParams<IpcChannelName.ScheduleReorderedByUser>) =>
+    (_event, ...args: IpcHandlerParams<IpcChannelName.ScheduleReorderedByUser>) =>
       handleScheduleReorderedByUser(...args),
   )
+  ipcMain.handle(IpcChannelName.PausedChanged, (_event, ...args: IpcHandlerParams<IpcChannelName.PausedChanged>) =>
+    handlePausedToggle(...args),
+  )
+  ipcMain.handle(IpcChannelName.UiReady, () => {
+    update()
+  })
 
   const trayIcon = MyTrayIcon.initialize({
     initialPauseCheckboxValue: Storage.get(StorageEntryKeys.Paused),
   })
   trayIcon
     .on('IconClicked', () => mainWindow.show)
-    .on('PauseCheckBoxClicked', (value) => handlePausedToggle(value, EventSource.Main))
+    .on('PauseCheckBoxClicked', (value) => handlePausedToggle(value))
     .on('PushNextCommitButtonClicked', () => {
       throw Error('Not implemented yet')
     })
 
-  let schedule = await initializeSchedule()
-  if (schedule) {
-    sendToMainWindow(IpcChannelName.ScheduleUpdated, schedule)
-  }
+  initializeSchedule().then((value) => {
+    if (value) {
+      Storage.set(StorageEntryKeys.Schedule, value)
+      sendToMainWindow(IpcChannelName.ScheduleUpdated, value)
+    }
+  })
 
-  cron.schedule(CronTime.every(5).minutes(), poll)
-  poll()
+  cron.schedule(CronTime.every(5).minutes(), update)
+  update()
 
   cron.schedule(CronTime.everyDayAt(22, 0), () => {})
 
-  async function poll() {
-    if (commitStatus === DailyCommitStatus.None) {
+  async function update() {
+    const schedule = Storage.get(StorageEntryKeys.Schedule)
+    if ((await getDailyCommitStatus()) === DailyCommitStatus.None) {
       if (schedule && schedule.length > 0) {
         const next = schedule.shift()
         if (!next) throw Error()
@@ -71,9 +70,10 @@ app.whenReady().then(async () => {
       }
     }
 
+    sendToMainWindow(IpcChannelName.PausedChanged, Storage.get(StorageEntryKeys.Paused))
+
     const nextStatus = await GitHubClient.getTodaysCommitStatus()
-    notifyOfNoCommitForToday(commitStatus)
-    commitStatus = nextStatus
+    notifyOfNoCommitForToday(nextStatus)
     sendToMainWindow(IpcChannelName.DailyCommitStatusChanged, nextStatus)
     trayIcon.notifyOfEvent(IpcChannelName.DailyCommitStatusChanged, nextStatus)
   }
@@ -86,16 +86,11 @@ app.whenReady().then(async () => {
     return filePaths[0]
   }
 
-  async function handlePausedToggle(value: boolean, source: EventSource): Promise<void> {
+  async function handlePausedToggle(value: boolean): Promise<void> {
     Storage.set(StorageEntryKeys.Paused, value)
 
-    if (source === EventSource.Main) {
-      sendToMainWindow(IpcChannelName.PausedChanged, value)
-    } else if (source === EventSource.Renderer) {
-      trayIcon.notifyOfEvent(IpcChannelName.PausedChanged, value)
-    } else {
-      throw Error(`Unrecognized event source '${source}'`)
-    }
+    sendToMainWindow(IpcChannelName.PausedChanged, value)
+    trayIcon.notifyOfEvent(IpcChannelName.PausedChanged, value)
   }
 
   async function handleReposDirChanged(value: string) {
@@ -106,12 +101,12 @@ app.whenReady().then(async () => {
   }
 
   async function handleScheduleReorderedByUser(value: Scheduling[]) {
-    console.log(`Schedule reordered by user: ${inspect(value)}`)
     Storage.set(StorageEntryKeys.Schedule, value)
     sendToMainWindow(IpcChannelName.ScheduleUpdated, value)
   }
 
   async function pushNextCommit(repo: Repo, branch: Branch) {
+    const schedule = Storage.get(StorageEntryKeys.Schedule)
     const commit = schedule?.find(
       (scheduling) => scheduling.repo.name === repo.name && scheduling.branch.name === branch.name,
     )
@@ -122,9 +117,9 @@ app.whenReady().then(async () => {
 
     await new GitClient(repo.localPath).pushNextCommit({ repoPath: repo.localPath, branchName: branch.name })
 
-    schedule = await initializeSchedule()
-    commitStatus = DailyCommitStatus.Pushed
-    sendToMainWindow(IpcChannelName.ScheduleUpdated, schedule ?? [])
+    const newSchedule = await initializeSchedule()
+    sendToMainWindow(IpcChannelName.ScheduleUpdated, newSchedule ?? [])
+    sendToMainWindow(IpcChannelName.DailyCommitStatusChanged, DailyCommitStatus.Pushed)
   }
 
   function sendToMainWindow<C extends IpcChannelName>(channel: C, ...args: IpcHandlerParams<C>) {

@@ -17,4 +17,9 @@ export const ipcApi = Object.freeze({
   onCommitPushed: (
     callback: (event: IpcRendererEvent, ...args: IpcHandlerParams<IpcChannelName.CommitPushed>) => void,
   ) => ipcRenderer.on(IpcChannelName.CommitPushed, callback),
+  onPausedChanged: (
+    callback: (event: IpcRendererEvent, ...args: IpcHandlerParams<IpcChannelName.PausedChanged>) => void,
+  ) => ipcRenderer.on(IpcChannelName.PausedChanged, callback),
+  unpause: () => ipcRenderer.invoke(IpcChannelName.PausedChanged, false),
+  sendUiReadySignal: () => ipcRenderer.invoke(IpcChannelName.UiReady),
 })

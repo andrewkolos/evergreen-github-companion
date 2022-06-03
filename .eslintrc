@@ -13,5 +13,7 @@
     "prettier"
   ],
   "ignorePatterns": ["*.config.js"],
-  "rules": {}
+  "rules": {
+    "react/prop-types": ["off"]
+  }
 }

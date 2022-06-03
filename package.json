@@ -30,6 +30,10 @@
   "homepage": "https://github.com/andrewkolos/evergreen-github-companion#readme",
   "dependencies": {
     "@akolos/event-emitter": "^3.0.0",
+    "@dnd-kit/core": "^6.0.1",
+    "@dnd-kit/modifiers": "^6.0.0",
+    "@dnd-kit/sortable": "^7.0.0",
+    "@dnd-kit/utilities": "^3.2.0",
     "@octokit/rest": "^18.12.0",
     "cron-time-generator": "^1.3.0",
     "dotenv": "^16.0.1",
@@ -39,6 +43,7 @@
     "node-cron": "^3.0.0",
     "react": "^18.1.0",
     "react-dom": "^18.1.0",
+    "react-icons": "^4.3.1",
     "simple-git": "^3.7.1",
     "ts-key-enum": "^2.0.11"
   },

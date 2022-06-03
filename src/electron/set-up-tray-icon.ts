@@ -55,13 +55,14 @@ export class MyTrayIcon extends InheritableEventEmitter<MyTrayIconEvents> {
   }
 
   notifyOfEvent<T extends IpcChannelName>(channelName: T, ...args: IpcHandlerParams<T>) {
-    if (channelName === IpcChannelName.PausedChanged) {
-      // eslint-disable-next-line prefer-destructuring -- Not for assignments to nonlocal variables.
-      this.#pausedCheckButton.checked = (args as [boolean])[0]
-    }
     if (channelName === IpcChannelName.DailyCommitStatusChanged) {
       // I don't know why this type assertion is necessary.
       this.updateDailyCommitStatus((args as [DailyCommitStatus])[0])
+    }
+
+    if (channelName === IpcChannelName.PausedChanged) {
+      // eslint-disable-next-line prefer-destructuring
+      this.#pausedCheckButton.checked = (args as [boolean])[0]
     }
   }
 

@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react'
 import { DailyCommitStatus } from '../git/daily-commit-status'
-import { Commit } from '../git/types/commit'
 import { Scheduling } from '../git/types/scheduling'
 import { ipcApi } from '../ipc/ipc-api'
 import { DailyCommitStatusDisplay } from './components/DailyCommitStatusDisplay'
 import { DirectoryChooser } from './components/DirectoryChooser'
+import PausedDisplay from './components/PausedDisplay'
 import { Schedule } from './components/Schedule'
 
 export interface IndexProps {
@@ -14,9 +14,9 @@ export interface IndexProps {
 
 export const Index: React.FC<IndexProps> = ({ api, initialReposDir }) => {
   const [schedule, setSchedule] = React.useState<Scheduling[] | undefined | null>(undefined)
+  const [paused, setPaused] = React.useState<boolean>(false)
   const [reposDir, setReposDir] = React.useState<string | null>(initialReposDir)
   const [dailyCommitStatus, setDailyCommitStatus] = React.useState<DailyCommitStatus>(DailyCommitStatus.Unknown)
-  const [mostRecentlyPushedCommit, setMostRecentlyPushedCommit] = React.useState<Commit | undefined>(undefined)
 
   useEffect(() => {
     api.onScheduleChanged((_event, value) => {
@@ -27,9 +27,11 @@ export const Index: React.FC<IndexProps> = ({ api, initialReposDir }) => {
       setDailyCommitStatus(value)
     })
 
-    api.onCommitPushed((_event, value) => {
-      setMostRecentlyPushedCommit(value)
+    api.onPausedChanged((_event, value) => {
+      setPaused(value)
     })
+
+    api.sendUiReadySignal()
   })
 
   return (
@@ -40,7 +42,8 @@ export const Index: React.FC<IndexProps> = ({ api, initialReposDir }) => {
         <h1 className="text-2xl font-bold block text-center">Auto-Push Schedule</h1>
         <div className="flex-grow">{renderSchedule()}</div>
       </div>
-      <DailyCommitStatusDisplay status={dailyCommitStatus} mostRecentlyPushedCommit={mostRecentlyPushedCommit} />
+      <DailyCommitStatusDisplay status={dailyCommitStatus} />
+      {paused && <PausedDisplay onUnpauseClicked={handleUnpausedClicked} />}
     </div>
   )
 
@@ -70,6 +73,15 @@ export const Index: React.FC<IndexProps> = ({ api, initialReposDir }) => {
       return <div className="w-full text-lg text-center">There are no unpushed commits available.</div>
     }
 
-    return <Schedule schedule={schedule} />
+    return <Schedule initialSchedule={schedule} onReorder={handleReorder} />
+  }
+
+  function handleReorder(newSchedule: Scheduling[]) {
+    setSchedule(newSchedule)
+    api.rescheduleCommits(newSchedule)
+  }
+
+  function handleUnpausedClicked() {
+    api.unpause()
   }
 }
