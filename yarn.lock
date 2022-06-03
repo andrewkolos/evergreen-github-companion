@@ -7,10 +7,10 @@
   resolved "https://registry.yarnpkg.com/@akolos/custom-error/-/custom-error-1.0.0.tgz#94b828a858658bd87b7c082b584879a2b429700b"
   integrity sha512-GDY9PKdLDZom9PJnfhF/eAfe57FpVSdWaxwtn4rbGHisvLgUfn1mtbKL4vRLSFGD18HOfaSXzrSNFn9GuxiwTw==
 
-"@akolos/eslint-config-typescript@^3.0.0":
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/@akolos/eslint-config-typescript/-/eslint-config-typescript-3.0.0.tgz#79de435e494507e09fb9872b0cd94cb6da998dc2"
-  integrity sha512-+xnax3kROb8mc0jyGD39hOw5W9d9/IlWqtO5qbRGUZn4dSsi6W+cPL13ygEK4lBrudgoAg4Zg0OYjRff1b7IWA==
+"@akolos/eslint-config-typescript@^4.0.2":
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/@akolos/eslint-config-typescript/-/eslint-config-typescript-4.0.2.tgz#3df7ddeaadb892a09da2c89f5266ce89d38b15a4"
+  integrity sha512-BOeppfUFSGhlwLO7xyG73y3IKOJW8RqjKbcpvwb/jSOloQ9/7cQ8A1hxXJQTSmQW9kb3oXscuGOBtpE1msyrjw==
   dependencies:
     eslint-config-airbnb "^19.0.4"
     eslint-config-airbnb-typescript "^16.2.0"

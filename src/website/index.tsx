@@ -42,7 +42,7 @@ export const Index: React.FC<IndexProps> = ({ api, initialReposDir, initialGitHu
 
   useEffect(() => {
     if (schedule === undefined) {
-      api.sendUiReadySignal()
+      void api.sendUiReadySignal()
     }
 
     const requiredConfigIsNowProvided = gitHubUsername != null && reposDir != null
@@ -104,22 +104,22 @@ export const Index: React.FC<IndexProps> = ({ api, initialReposDir, initialGitHu
 
   function handleReorder(newSchedule: Scheduling[]) {
     setSchedule(newSchedule)
-    api.rescheduleCommits(newSchedule)
+    void api.rescheduleCommits(newSchedule)
   }
 
   function handleUnpausedClicked() {
-    api.unpause()
+    void api.unpause()
   }
 
   function handleSettingsChange({ gitHubUsername: newGitHubUsername, reposDir: newReposDir }: UserSettings) {
     if (newReposDir !== reposDir) {
       setReposDir(newReposDir)
-      api.changeReposDirectory(newReposDir)
+      void api.changeReposDirectory(newReposDir)
     }
 
     if (newGitHubUsername !== gitHubUsername) {
       setGitHubUsername(newGitHubUsername)
-      api.gitHubUsernameChanged(newGitHubUsername)
+      void api.gitHubUsernameChanged(newGitHubUsername)
     }
   }
 }

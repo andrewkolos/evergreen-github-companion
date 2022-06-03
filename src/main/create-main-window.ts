@@ -17,7 +17,7 @@ export function createMainWindow() {
   })
 
   window.setMenuBarVisibility(false)
-  window.loadURL(MAIN_WINDOW_WEBPACK_ENTRY)
+  void window.loadURL(MAIN_WINDOW_WEBPACK_ENTRY)
 
   if (process.env.NODE_ENV === 'development') {
     setTimeout(() => {

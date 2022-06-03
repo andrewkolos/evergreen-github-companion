@@ -48,10 +48,12 @@ export const Schedule: React.FC<ScheduleProps> = ({ initialSchedule, onReorder }
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
 
-    if (active.id !== over!.id) {
+    if (over == null) return
+
+    if (active.id !== over.id) {
       setSchedule((items) => {
         const oldIndex = items.findIndex((i) => i.id === active.id)
-        const newIndex = items.findIndex((i) => i.id === over!.id)
+        const newIndex = items.findIndex((i) => i.id === over.id)
 
         const result = arrayMove(items, oldIndex, newIndex)
         onReorder(untag(result))

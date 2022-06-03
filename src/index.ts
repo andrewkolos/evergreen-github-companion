@@ -33,7 +33,8 @@ import { Storage, StorageEntryKeys } from './main/storage'
 dotenv.config()
 
 app.on('ready', () => app.setAppUserModelId(process.execPath))
-app.whenReady().then(async () => {
+
+void app.whenReady().then(async () => {
   new Notification({
     body: process.cwd(),
   }).show()
@@ -52,7 +53,7 @@ app.whenReady().then(async () => {
   )
   ipcMain.handle(IpcChannelName.UiReady, () => {
     sendToMainWindow(IpcChannelName.ScheduleUpdated, Storage.get(StorageEntryKeys.Schedule) ?? [])
-    update()
+    void update()
   })
   ipcMain.handle(
     IpcChannelName.GitHubUsernameChanged,
@@ -66,19 +67,21 @@ app.whenReady().then(async () => {
   })
   trayIcon
     .on('IconClicked', () => mainWindow.show)
-    .on('PauseCheckBoxClicked', (value) => handlePausedToggle(value))
+    .on('PauseCheckBoxClicked', (value) => {
+      void handlePausedToggle(value)
+    })
     .on('PushNextCommitButtonClicked', () => {
       throw Error('Not implemented yet')
     })
 
-  initializeSchedule().then((value) => {
+  void initializeSchedule().then((value) => {
     if (value) {
       Storage.set(StorageEntryKeys.Schedule, value)
       sendToMainWindow(IpcChannelName.ScheduleUpdated, value)
     }
   })
 
-  cron.schedule(CronTime.every(5).minutes(), update)
+  cron.schedule(CronTime.every(5).minutes(), () => update)
   sendToMainWindow(IpcChannelName.PausedChanged, Storage.get(StorageEntryKeys.Paused))
 
   async function update() {
@@ -93,7 +96,7 @@ app.whenReady().then(async () => {
       if (schedule && schedule.length > 0) {
         const next = schedule.shift()
         if (!next) throw Error()
-        await pushNextCommit(next.repo, next.branch)
+        // await pushNextCommit(next.repo, next.branch)
 
         new Notification({
           title: 'Pushed daily commit',
@@ -104,9 +107,11 @@ app.whenReady().then(async () => {
     }
 
     const nextStatus = await getDailyCommitStatus(gitHubUsername)
-    notifyOfNoCommitForToday(nextStatus)
-    sendToMainWindow(IpcChannelName.DailyCommitStatusChanged, nextStatus)
-    trayIcon.notifyOfEvent(IpcChannelName.DailyCommitStatusChanged, nextStatus)
+    if (nextStatus === DailyCommitStatus.None && currentStatus === nextStatus) {
+      await notifyOfNoCommitForToday(nextStatus)
+      sendToMainWindow(IpcChannelName.DailyCommitStatusChanged, nextStatus)
+      trayIcon.notifyOfEvent(IpcChannelName.DailyCommitStatusChanged, nextStatus)
+    }
   }
 
   async function handleDirectorySelect(): Promise<string | undefined> {

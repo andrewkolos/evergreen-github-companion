@@ -10,11 +10,13 @@ export const GitHubClient = (username: string) =>
     getTodaysCommitStatus: async () => {
       const commits = await getTodaysCommits(username)
 
+      console.log(commits)
       if (commits.length > 0) {
+        console.log('grea tjob!!!')
         return DailyCommitStatus.Pushed
       }
 
-      return DailyCommitStatus.None
+      return DailyCommitStatus.Pushed
     },
   })
 
@@ -24,9 +26,10 @@ async function getTodaysCommits(username: string) {
     log: console,
     auth: token != null ? `token ${token}` : undefined,
   })
-  const events = await client.activity.listEventsForAuthenticatedUser({
+  const events = await client.activity.listPublicEventsForUser({
     username,
   })
+  console.log(events)
   return events.data.filter((event) => {
     if (event.created_at == null) {
       console.warn(`GitHub event 'created_at' was undefined.`)

@@ -32,7 +32,6 @@ export class GitClient {
   async pushNextCommit({ repoPath, branchName }: { repoPath: string; branchName: string }): Promise<void> {
     const reposWithUnpushedCommits = (await this.#reposWithUnpushedCommits).slice()
 
-    console.log('repolocal', reposWithUnpushedCommits)
     const repoInfo = reposWithUnpushedCommits.find((repo) => repo.localPath === repoPath)
     if (repoInfo == null) throw Error(`Repo with path '${repoPath}' doesn't exist or has no commits to push.`)
 
@@ -59,17 +58,15 @@ export class GitClient {
       process.chdir(temp)
     }
 
-    console.log(`HEAD~${branch.unpushedCommits.length}`)
     await git.rebase(['-i', `HEAD~${branch.unpushedCommits.length}`])
-    console.log('argh2')
 
     for (let i = 0; i < branch.unpushedCommits.length; i += 1) {
       const date = new Date()
       date.setMinutes(date.getMinutes() - (branch.unpushedCommits.length - i)) // TODO: Try to preserve date distances instead.
       // eslint-disable-next-line no-await-in-loop -- Intentional. We need to run these git commands in sequence.
       await git.commit(['--amend', '--no-edit', '--no-verify', '--date', date.toISOString()])
-
-      git.rebase(['--continue'])
+      // eslint-disable-next-line no-await-in-loop -- Intentional. We need to run these git commands in sequence.
+      await git.rebase(['--continue'])
     }
 
     const earliestUnPushedCommit = branch.unpushedCommits[0]
