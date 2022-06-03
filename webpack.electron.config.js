@@ -13,9 +13,9 @@ const commonConfig = {
 }
 const mainConfig = {
   mode: 'development',
-  entry: './src/electron/index.ts',
+  entry: './src/electron/main.ts',
   output: {
-    filename: 'index.js',
+    filename: 'main.js',
     path: path.resolve(__dirname, 'out/electron'),
   },
   ...commonConfig,

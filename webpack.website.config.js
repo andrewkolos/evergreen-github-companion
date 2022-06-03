@@ -44,13 +44,13 @@ module.exports = {
   },
   resolve: {
     // specify certain file extensions to get automatically appended to imports
-    // ie we can write `import 'index'` instead of `import 'index.ts'`
+    // ie we can write `import 'index'` instead of `import 'main.ts'`
     extensions: ['.ts', '.tsx', '.js'],
   },
   plugins: [
     new MiniCssExtractPlugin(),
 
-    // This reads index.html from src, injects a <script> tag for index.js, and then copies it to the output dir
+    // This reads index.html from src, injects a <script> tag for main.js, and then copies it to the output dir
     new HtmlWebPackPlugin({
       template: 'src/website/index.html',
     }),
