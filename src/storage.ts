@@ -1,6 +1,6 @@
 import { EventEmitter } from '@akolos/event-emitter'
 import ElectronStore from 'electron-store'
-import { Scheduling } from '../git/types/scheduling'
+import { Scheduling } from './git/types/scheduling'
 
 export enum StorageEntryKeys {
   RepositoriesDirectoryPath = 'RepositoriesDirectoryPath',

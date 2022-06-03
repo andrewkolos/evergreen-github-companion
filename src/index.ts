@@ -1,19 +1,24 @@
+// Handle creating/removing shortcuts on Windows when installing/uninstalling.
+if (require('electron-squirrel-startup')) {
+  app.quit()
+}
+
 import CronTime from 'cron-time-generator'
 import dotenv from 'dotenv'
-import { app, dialog, ipcMain, Notification } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Notification } from 'electron'
 import cron from 'node-cron'
 import dedent from 'ts-dedent'
-import { DailyCommitStatus } from '../git/daily-commit-status'
-import { GitClient } from '../git/git-client'
-import { GitHubClient } from '../git/github-client'
-import { Branch } from '../git/types/branch'
-import { Repo } from '../git/types/repo'
-import { Scheduling } from '../git/types/scheduling'
-import { IpcChannelName, IpcHandlerParams } from '../ipc/ipc-channels'
-import { isToday } from '../is-today'
-import { createMainWindow } from './create-main-window'
-import { getDailyCommitStatus } from './get-daily-commit-status'
-import { MyTrayIcon } from './set-up-tray-icon'
+import { DailyCommitStatus } from './git/daily-commit-status'
+import { GitClient } from './git/git-client'
+import { GitHubClient } from './git/github-client'
+import { Branch } from './git/types/branch'
+import { Repo } from './git/types/repo'
+import { Scheduling } from './git/types/scheduling'
+import { IpcChannelName, IpcHandlerParams } from './ipc/ipc-channels'
+import { isToday } from './is-today'
+import { createMainWindow } from './main/create-main-window'
+import { getDailyCommitStatus } from './main/get-daily-commit-status'
+import { MyTrayIcon } from './main/set-up-tray-icon'
 import { Storage, StorageEntryKeys } from './storage'
 
 dotenv.config()
@@ -34,6 +39,7 @@ app.whenReady().then(async () => {
     handlePausedToggle(...args),
   )
   ipcMain.handle(IpcChannelName.UiReady, () => {
+    sendToMainWindow(IpcChannelName.ScheduleUpdated, Storage.get(StorageEntryKeys.Schedule))
     update()
   })
 
@@ -59,6 +65,7 @@ app.whenReady().then(async () => {
   cron.schedule(CronTime.everyDayAt(22, 0), () => {})
 
   async function update() {
+    console.log('Updating...')
     const schedule = Storage.get(StorageEntryKeys.Schedule)?.slice()
     if ((await getDailyCommitStatus()) === DailyCommitStatus.None) {
       if (schedule && schedule.length > 0) {
@@ -155,3 +162,23 @@ async function notifyOfNoCommitForToday(commitStatus: DailyCommitStatus): Promis
     lastTimeNotified = new Date()
   }
 }
+
+// Quit when all windows are closed, except on macOS. There, it's common
+// for applications and their menu bar to stay active until the user quits
+// explicitly with Cmd + Q.
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit()
+  }
+})
+
+app.on('activate', () => {
+  // On OS X it's common to re-create a window in the app when the
+  // dock icon is clicked and there are no other windows open.
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createMainWindow()
+  }
+})
+
+// In this file you can include the rest of your app's specific main process
+// code. You can also put them in separate files and import them here.

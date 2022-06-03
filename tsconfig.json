@@ -2,18 +2,19 @@
   "compilerOptions": {
     "target": "ES2015",
     "allowJs": true,
+    "jsx": "react",
     "module": "commonjs",
     "skipLibCheck": true,
     "esModuleInterop": true,
     "noImplicitAny": true,
     "sourceMap": true,
+    "baseUrl": ".",
+    "outDir": "dist",
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "paths": {
-      "*": ["./node_modules/*"]
-    },
-    "strict": true,
-    "jsx": "react"
+      "*": ["node_modules/*"]
+    }
   },
-  "exclude": ["node_modules", "out", "*.config.js"]
+  "include": ["src/**/*"]
 }

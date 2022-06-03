@@ -30,7 +30,7 @@ export class MyTrayIcon extends InheritableEventEmitter<MyTrayIconEvents> {
 
   private constructor(params: InitializeTrayIconParams) {
     super()
-    const tray = new Tray('./icon.png')
+    const tray = new Tray('./src/static/icon.png')
     const contextMenu = new Menu()
 
     contextMenu.append(
@@ -68,10 +68,10 @@ export class MyTrayIcon extends InheritableEventEmitter<MyTrayIconEvents> {
 
   updateDailyCommitStatus(status: DailyCommitStatus) {
     if (status === DailyCommitStatus.Pushed) {
-      this.#tray.setImage('./green.png')
+      this.#tray.setImage('./src/static/green.png')
     }
     if (status === DailyCommitStatus.None) {
-      this.#tray.setImage('./red.png')
+      this.#tray.setImage('./src/static/red.png')
     }
   }
 }

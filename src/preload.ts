@@ -1,5 +1,5 @@
 import { contextBridge } from 'electron'
-import { ipcApi } from '../ipc/ipc-api'
+import { ipcApi } from './ipc/ipc-api'
 import { Storage, StorageEntryKeys } from './storage'
 
 // All of the Node.js APIs are available in the preload process.
