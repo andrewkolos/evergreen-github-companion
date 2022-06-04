@@ -82,7 +82,11 @@ void app.whenReady().then(async () => {
     )
   }
 
+  let updating = false
   async function update() {
+    if (updating) return
+    updating = true
+
     console.log('Updating...')
 
     const gitHubUsername = Storage.get(StorageEntryKeys.GitHubUsername)
@@ -116,6 +120,8 @@ void app.whenReady().then(async () => {
       sendToMainWindow(IpcChannelName.DailyCommitStatusChanged, nextStatus)
       trayIcon.notifyOfEvent(IpcChannelName.DailyCommitStatusChanged, nextStatus)
     }
+
+    updating = false
   }
 
   async function handleDirectorySelect(): Promise<string | undefined> {
