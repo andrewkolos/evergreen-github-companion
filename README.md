@@ -1,5 +1,7 @@
 # evergreen-github-companion
 
+### 🔴Project abandoned when I discovered all of the [criteria](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-profile/managing-contribution-graphs-on-your-profile/why-are-my-contributions-not-showing-up-on-my-profile) a commit must meet to appear within the GitHub profile activity graph.
+
 Helps you keep your GitHub profile green (and not through illegitimate means).
 
 ![Evergreen GitHub Companion application screenshot. Shows two repositories with unpushed commits that are scheduled for date amending and pushing](./readme_assets/screenshot.png)
