@@ -1,6 +1,6 @@
 # evergreen-github-companion
 
-### 🔴Project abandoned when I discovered all of the [criteria](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-profile/managing-contribution-graphs-on-your-profile/why-are-my-contributions-not-showing-up-on-my-profile) a commit must meet to appear within the GitHub profile activity graph.
+#### 🔴Project abandoned when I discovered all of the [criteria](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-profile/managing-contribution-graphs-on-your-profile/why-are-my-contributions-not-showing-up-on-my-profile) a commit must meet to appear within the GitHub profile activity graph. Basically, non-primary branch commits (PRs or otherwise) don't count, and, in my use case, it doesn't make sense to go for a commit onto main for each day.
 
 Helps you keep your GitHub profile green (and not through illegitimate means).
 
