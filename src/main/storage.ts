@@ -7,6 +7,7 @@ export enum StorageEntryKeys {
   Schedule = 'Schedule',
   Paused = 'Paused',
   GitHubUsername = 'GitHubUsername',
+  GitHubToken = 'GitHubToken',
 }
 
 interface StorageEntries {
@@ -14,6 +15,7 @@ interface StorageEntries {
   [StorageEntryKeys.Schedule]: Repo[] | null
   [StorageEntryKeys.Paused]: boolean
   [StorageEntryKeys.GitHubUsername]: string | null
+  [StorageEntryKeys.GitHubToken]: string | null
 }
 
 const storageDefaults: { [key in StorageEntryKeys]: StorageEntries[key] } = {
@@ -21,6 +23,7 @@ const storageDefaults: { [key in StorageEntryKeys]: StorageEntries[key] } = {
   [StorageEntryKeys.Schedule]: null,
   [StorageEntryKeys.Paused]: false,
   [StorageEntryKeys.GitHubUsername]: null,
+  [StorageEntryKeys.GitHubToken]: null,
 }
 
 export const storage = new ElectronStore<StorageEntries>({ defaults: storageDefaults })

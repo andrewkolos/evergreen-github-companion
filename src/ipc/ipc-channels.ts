@@ -13,6 +13,7 @@ export enum IpcChannelName {
   CommitPushed = 'CommitPushed',
   UiReady = 'UiReady',
   GitHubUsernameChanged = 'GitHubUsernameChanged',
+  GitHubTokenChanged = 'GitHubTokenChanged',
 }
 
 interface IpcEvents {
@@ -25,6 +26,7 @@ interface IpcEvents {
   [IpcChannelName.CommitPushed]: (value: Commit) => void
   [IpcChannelName.UiReady]: () => void
   [IpcChannelName.GitHubUsernameChanged]: (value: string) => void
+  [IpcChannelName.GitHubTokenChanged]: (value: string) => void
 }
 
 export type IpcHandler<E extends IpcChannelName> = IpcEvents[E]

@@ -14,7 +14,6 @@ import unhandled from 'electron-unhandled'
 unhandled()
 
 import CronTime from 'cron-time-generator'
-import dotenv from 'dotenv'
 
 import cron from 'node-cron'
 import dedent from 'ts-dedent'
@@ -29,8 +28,6 @@ import { MyTrayIcon } from './main/set-up-tray-icon'
 import { Storage, StorageEntryKeys } from './main/storage'
 import { getReposWithUnpushedCommits } from './git/get-repos-with-unpushed-commits'
 import { pushNextCommit } from './git/push-next-commit'
-
-dotenv.config()
 
 app.on('ready', () => app.setAppUserModelId(process.execPath))
 
@@ -80,6 +77,12 @@ void app.whenReady().then(async () => {
         Storage.set(StorageEntryKeys.GitHubUsername, args[0])
       },
     )
+    ipcMain.handle(
+      IpcChannelName.GitHubTokenChanged,
+      (_event, ...args: IpcHandlerParams<IpcChannelName.GitHubTokenChanged>) => {
+        Storage.set(StorageEntryKeys.GitHubToken, args[0])
+      },
+    )
   }
 
   let updating = false
@@ -90,12 +93,17 @@ void app.whenReady().then(async () => {
     console.log('Updating...')
 
     const gitHubUsername = Storage.get(StorageEntryKeys.GitHubUsername)
+    const gitHubToken = Storage.get(StorageEntryKeys.GitHubToken)
     if (gitHubUsername == null) {
       console.log('update: No GitHub username has been set. Stopping update.')
       return
     }
+    if (gitHubToken == null) {
+      console.log('update: No GitHub token has been set. Stopping update.')
+      return
+    }
 
-    const currentStatus = await getDailyCommitStatus(gitHubUsername)
+    const currentStatus = await getDailyCommitStatus(gitHubUsername, gitHubToken)
     const schedule = Storage.get(StorageEntryKeys.Schedule)?.slice()
 
     if (currentStatus === DailyCommitStatus.None) {
@@ -107,19 +115,21 @@ void app.whenReady().then(async () => {
         new Notification({
           title: 'Pushed daily commit',
           body: dedent`Pushed the next commit of: ${next.name}/${next.mainBranchName},
-            ${next.unpushedCommits[0].message}`,
+          ${next.unpushedCommits[0].message}`,
         }).show()
+      } else {
+        console.log(`No scheduled items to commit.`)
       }
-    } else {
-      console.log(`No scheduled items to commit.`)
     }
 
-    const nextStatus = await getDailyCommitStatus(gitHubUsername)
+    const nextStatus = await getDailyCommitStatus(gitHubUsername, gitHubToken)
+    sendToMainWindow(IpcChannelName.DailyCommitStatusChanged, nextStatus)
+    trayIcon.notifyOfEvent(IpcChannelName.DailyCommitStatusChanged, nextStatus)
     if (nextStatus === DailyCommitStatus.None && currentStatus === nextStatus) {
       await notifyOfNoCommitForToday(nextStatus)
-      sendToMainWindow(IpcChannelName.DailyCommitStatusChanged, nextStatus)
-      trayIcon.notifyOfEvent(IpcChannelName.DailyCommitStatusChanged, nextStatus)
     }
+
+    console.log('Update complete.')
 
     updating = false
   }
@@ -166,7 +176,7 @@ void app.whenReady().then(async () => {
   }
 
   function sendToMainWindow<C extends IpcChannelName>(channel: C, ...args: IpcHandlerParams<C>) {
-    console.log(`Sending message to main window: ${channel}, ${args}`)
+    console.log(`Sending message to main window: ${channel}, ${JSON.stringify(args, null, 2)}`)
     mainWindow.webContents.send(channel, ...args)
   }
 })
@@ -189,7 +199,7 @@ async function notifyOfNoCommitForToday(commitStatus: DailyCommitStatus): Promis
 
   if (new Date().getHours() > 20 && !isToday(lastTimeNotified)) {
     new Notification({
-      title: 'You have not made a commit today',
+      title: 'No commits have been pushed today. Considering making one soon to continue your streak.',
     }).show()
     lastTimeNotified = new Date()
   }

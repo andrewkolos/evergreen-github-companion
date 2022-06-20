@@ -27,6 +27,8 @@ const rendererToMain = {
   sendUiReadySignal: () => ipcRenderer.invoke(IpcChannelName.UiReady),
   gitHubUsernameChanged: (...args: IpcHandlerParams<IpcChannelName.GitHubUsernameChanged>) =>
     ipcRenderer.invoke(IpcChannelName.GitHubUsernameChanged, ...args),
+  gitHubTokenChanged: (...args: IpcHandlerParams<IpcChannelName.GitHubTokenChanged>) =>
+    ipcRenderer.invoke(IpcChannelName.GitHubTokenChanged, ...args),
 }
 
 export const ipcApi = Object.freeze({

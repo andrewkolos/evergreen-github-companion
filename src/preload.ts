@@ -7,7 +7,9 @@ import { Storage, StorageEntryKeys } from './main/storage'
 
 const reposDir = Storage.get(StorageEntryKeys.RepositoriesDirectoryPath)
 const gitHubUsername = Storage.get(StorageEntryKeys.GitHubUsername)
+const gitHubToken = Storage.get(StorageEntryKeys.GitHubToken)
 
 contextBridge.exposeInMainWorld(`ipcApi`, ipcApi)
 contextBridge.exposeInMainWorld('initialReposDir', reposDir)
 contextBridge.exposeInMainWorld('initialGitHubUsername', gitHubUsername)
+contextBridge.exposeInMainWorld('initialGitHubToken', gitHubToken)

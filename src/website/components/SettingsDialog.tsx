@@ -4,12 +4,13 @@ import { DirectoryChooser } from './DirectoryChooser'
 
 export interface UserSettings {
   gitHubUsername: string
+  gitHubToken: string
   reposDir: string
 }
 
 export interface SettingsDialogProps {
   value: UserSettings
-  onSave: (value: { gitHubUsername: string; reposDir: string }) => void
+  onSave: (value: { gitHubUsername: string; reposDir: string; gitHubToken: string }) => void
   onCancel: () => void
   nativeDirectoryDialogShower: () => Promise<OpenDialogReturnValue>
 }
@@ -21,6 +22,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   nativeDirectoryDialogShower,
 }) => {
   const [gitHubUsername, setGitHubUsername] = useState<string>(value.gitHubUsername)
+  const [gitHubToken, setGitHubToken] = useState<string>(value.gitHubToken)
   const [reposDir, setReposDir] = useState<string>(value.reposDir)
   const [setupMode] = useState<boolean>(!isFormValid())
 
@@ -65,6 +67,19 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                 {!gitHubUsername && <p className="mt-1 text-sm text-red-500">GitHub username is required.</p>}
               </div>
               <div className="mb-5">
+                <label htmlFor="gitHubToken" className="block">
+                  <span className="font-bold text-gray-600">GitHub Token</span>
+                  <input
+                    type="password"
+                    className="w-full p-2 border border-gray-300 rounded shadow focus:outline-none hover:ring-blue-500 hover:ring focus:ring focus:ring-blue-700 active:ring-blue-700"
+                    placeholder=""
+                    value={gitHubToken ?? ''}
+                    onChange={(event) => setGitHubToken(event.target.value)}
+                  />
+                </label>
+                {!gitHubToken && <p className="mt-1 text-sm text-red-500">GitHub Token is required.</p>}
+              </div>
+              <div className="mb-5">
                 {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
                 <label className="block">
                   <span className="font-bold text-gray-600">Repo Directory Root</span>
@@ -77,6 +92,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 
                 {!reposDir && <p className="mt-1 text-sm text-red-500">Repo directory root is required.</p>}
               </div>
+
               <button type="submit" className="block w-full btn" onClick={handleSave} disabled={!isFormValid()}>
                 Save
               </button>
@@ -95,10 +111,11 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     onSave({
       gitHubUsername,
       reposDir,
+      gitHubToken,
     })
   }
 
-  function isFormValid() {
-    return gitHubUsername && reposDir
+  function isFormValid(): boolean {
+    return Boolean(gitHubUsername && reposDir && gitHubToken)
   }
 }

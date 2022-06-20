@@ -12,13 +12,15 @@ export interface IndexProps {
   api: typeof ipcApi
   initialReposDir: string | null
   initialGitHubUserName: string | null
+  initialGitHubToken: string | null
 }
 
-export const Index: React.FC<IndexProps> = ({ api, initialReposDir, initialGitHubUserName }) => {
+export const Index: React.FC<IndexProps> = ({ api, initialReposDir, initialGitHubUserName, initialGitHubToken }) => {
   const [schedule, setSchedule] = React.useState<Repo[] | undefined | null>(undefined)
   const [paused, setPaused] = React.useState<boolean>(false)
   const [reposDir, setReposDir] = React.useState<string | null>(initialReposDir)
   const [gitHubUsername, setGitHubUsername] = React.useState<string | null>(initialGitHubUserName)
+  const [gitHubToken, setGitHubToken] = React.useState<string | null>(initialGitHubToken)
   const [dailyCommitStatus, setDailyCommitStatus] = React.useState<DailyCommitStatus>(DailyCommitStatus.Unknown)
   const [requiredConfigProvided, setRequiredConfigProvided] = React.useState<boolean>(false)
 
@@ -45,7 +47,7 @@ export const Index: React.FC<IndexProps> = ({ api, initialReposDir, initialGitHu
       void api.sendUiReadySignal()
     }
 
-    const requiredConfigIsNowProvided = gitHubUsername != null && reposDir != null
+    const requiredConfigIsNowProvided = gitHubUsername != null && reposDir != null && gitHubToken != null
     if (requiredConfigIsNowProvided !== requiredConfigProvided) {
       setRequiredConfigProvided(requiredConfigIsNowProvided)
     }
@@ -55,7 +57,7 @@ export const Index: React.FC<IndexProps> = ({ api, initialReposDir, initialGitHu
     <>
       {(showingSettings || !requiredConfigProvided) && (
         <SettingsDialog
-          value={{ gitHubUsername: gitHubUsername ?? '', reposDir: reposDir ?? '' }}
+          value={{ gitHubUsername: gitHubUsername ?? '', reposDir: reposDir ?? '', gitHubToken: gitHubToken ?? '' }}
           onSave={handleSettingsChange}
           onCancel={() => setShowingSettings(false)}
           nativeDirectoryDialogShower={() => api.openDirectoryDialog()}
@@ -111,7 +113,11 @@ export const Index: React.FC<IndexProps> = ({ api, initialReposDir, initialGitHu
     void api.unpause()
   }
 
-  function handleSettingsChange({ gitHubUsername: newGitHubUsername, reposDir: newReposDir }: UserSettings) {
+  function handleSettingsChange({
+    gitHubUsername: newGitHubUsername,
+    reposDir: newReposDir,
+    gitHubToken: newGitHubToken,
+  }: UserSettings) {
     if (newReposDir !== reposDir) {
       setReposDir(newReposDir)
       void api.changeReposDirectory(newReposDir)
@@ -120,6 +126,11 @@ export const Index: React.FC<IndexProps> = ({ api, initialReposDir, initialGitHu
     if (newGitHubUsername !== gitHubUsername) {
       setGitHubUsername(newGitHubUsername)
       void api.gitHubUsernameChanged(newGitHubUsername)
+    }
+
+    if (newGitHubToken !== gitHubToken) {
+      setGitHubToken(newGitHubToken)
+      void api.gitHubTokenChanged(newGitHubToken)
     }
   }
 }

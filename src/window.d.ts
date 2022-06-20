@@ -6,6 +6,7 @@ declare global {
     ipcApi: typeof ipcApi
     initialReposDir: string | null
     initialGitHubUsername: string | null
+    initialGitHubToken: string | null
     initialSchedule: null | Promise<Schedule[]>
   }
 }
